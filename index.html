@@ -86,13 +86,7 @@ body{
 .live-dot{width:6px;height:6px;border-radius:50%;background:#6effc7;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .clock{font-family:var(--mono);font-size:12px;color:var(--sage)}
-.settings-btn{
-  width:34px;height:34px;border-radius:8px;
-  background:rgba(255,255,255,.1);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:16px;
-  color:#fff;transition:background .2s;
-}
-.settings-btn:hover{background:rgba(255,255,255,.18)}
+
 
 /* ══ NAV TABS (hidden) ═══════════════════════════════════════ */
 .nav{display:none}
@@ -407,11 +401,7 @@ body{
 .bnav-btn.active{color:var(--navy)}
 .bnav-ico{font-size:20px;line-height:1}
 
-/* ══ SETTINGS PANEL ═════════════════════════════════════════ */
-.settings-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;
-  display:none;backdrop-filter:blur(4px);
-}
+
 .settings-overlay.open{display:flex;align-items:flex-end;justify-content:center}
 @media(min-width:600px){.settings-overlay.open{align-items:center}}
 .settings-panel{
@@ -491,7 +481,6 @@ body{
   <div class="topbar-right">
     <div class="live-badge"><span class="live-dot"></span><span id="liveStatus">Live</span></div>
     <div class="clock" id="clock"></div>
-    <button class="settings-btn" onclick="openSettings()">⚙️</button>
   </div>
 </header>
 
@@ -502,11 +491,11 @@ body{
 <!-- ══════════ DASHBOARD ══════════ -->
 <div class="page active" id="page-dashboard">
 
-  <div id="configNotice" class="config-notice" style="display:none">
+  <div id="configNotice" class="config-notice" style="display:none;pointer-events:none">
     <h3>⚙️ Belum terhubung ke Google Sheets</h3>
     <p>Klik tombol <strong>⚙️ Settings</strong> di kanan atas, lalu masukkan <strong>Web App URL</strong> dari Google Apps Script untuk mengaktifkan sinkronisasi data.</p>
     <p>Ikuti instruksi di file <code>CARA_SETUP.md</code> untuk deploy Apps Script ke Google Sheets.</p>
-    <button class="btn-outline" onclick="openSettings()" style="margin-top:4px">Buka Settings →</button>
+
   </div>
 
   <div class="metrics">
@@ -824,10 +813,6 @@ body{
   </div>
 </div>
 
-<!-- ══ SETTINGS PANEL ══ -->
-<div class="settings-overlay" id="settingsOverlay" onclick="closeSettings(event)">
-  <div class="settings-panel">
-    <div class="settings-title">⚙️ Pengaturan Koneksi</div>
     <div class="settings-group">
       <div class="settings-label">Google Apps Script Web App URL</div>
       <input class="settings-input" id="settingsUrl" placeholder="https://script.google.com/macros/s/..."/>
@@ -1011,10 +996,9 @@ body{
 // ════════════════════════════════════════════════════════
 
 // ── CONFIG ─────────────────────────────────────────────────
-const GAS_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycby-orfwGW5wWyMmLjk-u91MAXpBTxWhB5a9UyizY6G7no41RDQGI8NxvbjcQnkxzmBB/exec';
-let GAS_URL   = localStorage.getItem('apd_gas_url')   || GAS_URL_DEFAULT;
-let SS_ID_CFG = localStorage.getItem('apd_ss_id')     || '';
-let OBSERVER  = localStorage.getItem('apd_observer')  || '';
+const GAS_URL   = 'https://script.google.com/macros/s/AKfycby-orfwGW5wWyMmLjk-u91MAXpBTxWhB5a9UyizY6G7no41RDQGI8NxvbjcQnkxzmBB/exec';
+const SS_ID_CFG = '1U6ScVRj9OKGPCVx5kE9maabo4n9zg0wH';
+let OBSERVER    = localStorage.getItem('apd_observer') || '';
 
 // APD icons map — sarung tangan 3 jenis, masker 2 jenis
 const APD_META = {
@@ -1664,34 +1648,9 @@ function exportCSV() {
 }
 
 function openInSheets() {
-  if (!SS_ID_CFG) { showToast('Sheets ID belum diset di Settings', 'err'); return; }
-  window.open(`https://docs.google.com/spreadsheets/d/${SS_ID_CFG}/edit`, '_blank');
+  window.open('https://drive.google.com/drive/folders/1U6ScVRj9OKGPCVx5kE9maabo4n9zg0wH', '_blank');
 }
 
-// ── SETTINGS ─────────────────────────────────────────────────
-function openSettings() {
-  document.getElementById('settingsUrl').value      = GAS_URL;
-  document.getElementById('settingsSsId').value     = SS_ID_CFG;
-  document.getElementById('settingsObserver').value = OBSERVER;
-  document.getElementById('settingsOverlay').classList.add('open');
-}
-function closeSettings(e) {
-  if (!e || e.target.id==='settingsOverlay' || e.target.classList.contains('modal-close'))
-    document.getElementById('settingsOverlay').classList.remove('open');
-}
-function saveSettings() {
-  GAS_URL   = document.getElementById('settingsUrl').value.trim() || GAS_URL_DEFAULT;
-  SS_ID_CFG = document.getElementById('settingsSsId').value.trim();
-  OBSERVER  = document.getElementById('settingsObserver').value.trim();
-  localStorage.setItem('apd_gas_url', GAS_URL);
-  localStorage.setItem('apd_ss_id', SS_ID_CFG);
-  localStorage.setItem('apd_observer', OBSERVER);
-  if (OBSERVER) document.getElementById('scanObserver').value = OBSERVER;
-  document.getElementById('configNotice').style.display = GAS_URL ? 'none' : 'block';
-  closeSettings();
-  showToast('Settings disimpan!', 'ok');
-  if (GAS_URL) loadAllData();
-}
 async function testConnection() {
   const url = document.getElementById('settingsUrl').value.trim();
   if (!url) { showToast('Masukkan URL dulu', 'err'); return; }
