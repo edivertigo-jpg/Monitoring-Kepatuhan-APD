@@ -94,25 +94,9 @@ body{
 }
 .settings-btn:hover{background:rgba(255,255,255,.18)}
 
-/* ══ NAV TABS ══════════════════════════════════════════════ */
-.nav{
-  display:flex;gap:2px;
-  background:var(--navy2);
-  padding:0 16px;
-  border-bottom:1px solid rgba(255,255,255,0.1);
-  overflow-x:auto;scrollbar-width:none;
-}
-.nav::-webkit-scrollbar{display:none}
-.nav-btn{
-  flex-shrink:0;padding:0 16px;height:46px;
-  font-size:12px;font-weight:600;font-family:var(--sans);
-  border:none;background:transparent;color:var(--sage);
-  cursor:pointer;white-space:nowrap;
-  border-bottom:2px solid transparent;transition:all .2s;
-  display:flex;align-items:center;gap:6px;
-}
-.nav-btn.active{color:#fff;border-bottom-color:var(--lime)}
-.nav-btn:hover:not(.active){color:#fff;background:rgba(255,255,255,0.07)}
+/* ══ NAV TABS (hidden) ═══════════════════════════════════════ */
+.nav{display:none}
+.nav-btn{display:none}
 
 /* ══ CONTENT ════════════════════════════════════════════════ */
 .content{padding:20px;max-width:1280px;margin:0 auto;width:100%;padding-bottom:80px}
@@ -478,6 +462,7 @@ body{
 
 /* ══ ANIMATIONS ═════════════════════════════════════════════ */
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 .page.active>*{animation:fadeIn .3s ease both}
 
 /* ══ CONFIG NOTICE ═════════════════════════════════════════ */
@@ -510,13 +495,7 @@ body{
   </div>
 </header>
 
-<!-- NAV TABS -->
-<nav class="nav" id="topNav">
-  <button class="nav-btn active" onclick="showPage('dashboard',this)">📊 Dashboard</button>
-  <button class="nav-btn" onclick="showPage('verifikasi',this)">✅ Input Verifikasi</button>
-  <button class="nav-btn" onclick="showPage('master',this)">📋 Master APD</button>
-  <button class="nav-btn" onclick="showPage('laporan',this)">📈 Laporan</button>
-</nav>
+<!-- NAV TABS DIHAPUS - navigasi via bottom nav -->
 
 <main class="content">
 
@@ -641,18 +620,7 @@ body{
 
     <div class="apd-check-grid" id="apdChecklist"></div>
 
-    <!-- Sub-field jenis masker -->
-    <div class="sub-field" id="maskerSubField" style="margin-top:12px">
-      <div class="form-group">
-        <label class="form-label">Jenis Masker yang Dipakai</label>
-        <select class="form-input" id="jenisMaskerPakai">
-          <option value="">— Pilih jenis masker —</option>
-          <option value="Bedah">Masker Bedah</option>
-          <option value="N95/Respirator">N95 / Respirator</option>
-          <option value="Lainnya">Lainnya</option>
-        </select>
-      </div>
-    </div>
+    <!-- sub-field jenis APD sekarang inline di dalam checklist item -->
 
     <div class="form-group" style="margin-top:12px">
       <label class="form-label">Keterangan Tambahan</label>
@@ -823,21 +791,30 @@ body{
       </div>
     </div>
     <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">APD Wajib</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-st" style="accent-color:var(--blue)"> Sarung Tangan</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-masker"> Masker</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-gaun"> Gaun/Apron</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-goggle"> Kaca Mata</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-topi"> Topi</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-boot"> Sepatu Boot</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="form-group">
+        <label class="form-label">🧤 Sarung Tangan Wajib</label>
+        <select class="form-input" id="addJenisST">
+          <option value="">— Tidak perlu —</option>
+          <option value="Pemeriksaan">Pemeriksaan</option>
+          <option value="Bedah">Bedah (Steril)</option>
+          <option value="Rumah Tangga">Rumah Tangga</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">😷 Masker Wajib</label>
+        <select class="form-input" id="addJenisMasker">
+          <option value="">— Tidak perlu —</option>
+          <option value="Bedah">Masker Bedah</option>
+          <option value="Respiratorik">Respiratorik / N95</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:14px" id="addMaskerJenisGrp" style="display:none">
-      <label class="form-label">Jenis Masker</label>
-      <select class="form-input" id="addMaskerJenis">
-        <option value="Bedah">Bedah</option>
-        <option value="N95/Respirator">N95/Respirator</option>
-        <option value="Respiratorik">Respiratorik</option>
-      </select>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-gaun"> 🥼 Gaun/Apron</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-goggle"> 🥽 Kaca Mata</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-topi"> 🪖 Topi</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="add-boot"> 🥾 Sepatu Boot</label>
     </div>
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label">Sumber Acuan</label>
@@ -914,22 +891,30 @@ body{
       </div>
     </div>
     <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">APD Wajib</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-st" style="accent-color:var(--blue)"> Sarung Tangan</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-masker"> Masker</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-gaun"> Gaun/Apron</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-goggle"> Kaca Mata</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-topi"> Topi</label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-boot"> Sepatu Boot</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div class="form-group">
+        <label class="form-label">🧤 Sarung Tangan Wajib</label>
+        <select class="form-input" id="editJenisST">
+          <option value="">— Tidak perlu —</option>
+          <option value="Pemeriksaan">Pemeriksaan</option>
+          <option value="Bedah">Bedah (Steril)</option>
+          <option value="Rumah Tangga">Rumah Tangga</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">😷 Masker Wajib</label>
+        <select class="form-input" id="editJenisMasker">
+          <option value="">— Tidak perlu —</option>
+          <option value="Bedah">Masker Bedah</option>
+          <option value="Respiratorik">Respiratorik / N95</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:10px">
-      <label class="form-label">Jenis Masker (jika masker wajib)</label>
-      <select class="form-input" id="editMaskerJenis">
-        <option value="">— Tidak perlu —</option>
-        <option value="Bedah">Bedah</option>
-        <option value="N95/Respirator">N95/Respirator</option>
-        <option value="Respiratorik">Respiratorik</option>
-      </select>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-gaun"> 🥼 Gaun/Apron</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-goggle"> 🥽 Kaca Mata</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-topi"> 🪖 Topi</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-boot"> 🥾 Sepatu Boot</label>
     </div>
     <div class="form-group" style="margin-bottom:14px">
       <label class="form-label">Sumber Acuan</label>
@@ -949,6 +934,72 @@ body{
   </div>
 </div>
 
+
+<!-- ══ PWA INSTALL BANNER ══ -->
+<div id="installBanner" style="display:none;position:fixed;bottom:72px;left:12px;right:12px;z-index:400;
+  background:var(--navy);border-radius:16px;padding:16px 18px;
+  box-shadow:0 8px 32px rgba(13,59,110,0.35);
+  animation:slideUp .4s cubic-bezier(.4,0,.2,1)">
+  <div style="display:flex;align-items:center;gap:14px">
+    <img src="logo_surya.png" style="width:44px;height:44px;border-radius:50%;background:#fff;padding:3px;flex-shrink:0"/>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:2px">Install APD Monitor</div>
+      <div style="font-size:11px;color:var(--sage);line-height:1.4">Tambahkan ke layar utama untuk akses cepat tanpa buka browser</div>
+    </div>
+    <button id="installDismiss" style="background:rgba(255,255,255,0.12);border:none;color:#fff;
+      border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:16px;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0">✕</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button id="installBtn" style="flex:1;background:var(--lime);color:var(--navy);border:none;
+      border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;
+      font-family:var(--sans)">
+      📲 Install Sekarang
+    </button>
+    <button id="installLater" style="flex:1;background:rgba(255,255,255,0.1);color:#fff;border:none;
+      border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;
+      font-family:var(--sans)">
+      Nanti Saja
+    </button>
+  </div>
+</div>
+
+<!-- ══ iOS INSTALL GUIDE ══ -->
+<div class="modal-overlay" id="iosGuideOverlay" onclick="if(event.target.id==='iosGuideOverlay')this.classList.remove('open')">
+  <div class="modal" style="max-width:340px;text-align:center">
+    <div class="modal-header">
+      <div class="modal-title">📲 Cara Install di iPhone/iPad</div>
+      <button class="modal-close" onclick="document.getElementById('iosGuideOverlay').classList.remove('open')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0 8px">
+      <div style="display:flex;align-items:center;gap:12px;text-align:left;background:var(--off);border-radius:var(--r);padding:12px">
+        <div style="font-size:28px">1️⃣</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">Ketuk tombol Share</div>
+          <div style="font-size:12px;color:var(--muted)">Ikon kotak dengan panah ke atas di Safari</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;text-align:left;background:var(--off);border-radius:var(--r);padding:12px">
+        <div style="font-size:28px">2️⃣</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">Pilih "Add to Home Screen"</div>
+          <div style="font-size:12px;color:var(--muted)">Scroll ke bawah di menu share</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;text-align:left;background:var(--off);border-radius:var(--r);padding:12px">
+        <div style="font-size:28px">3️⃣</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--navy)">Ketuk "Add"</div>
+          <div style="font-size:12px;color:var(--muted)">APD Monitor akan muncul di layar utama</div>
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="document.getElementById('iosGuideOverlay').classList.remove('open');hideInstallBanner()">
+      Mengerti
+    </button>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -965,10 +1016,12 @@ let GAS_URL   = localStorage.getItem('apd_gas_url')   || GAS_URL_DEFAULT;
 let SS_ID_CFG = localStorage.getItem('apd_ss_id')     || '';
 let OBSERVER  = localStorage.getItem('apd_observer')  || '';
 
-// APD icons map
+// APD icons map — sarung tangan 3 jenis, masker 2 jenis
 const APD_META = {
-  'SARUNG TANGAN WAJIB': { icon:'🧤', label:'Sarung Tangan', key:'sarungtangan' },
-  'MASKER WAJIB':        { icon:'😷', label:'Masker',        key:'masker' },
+  'SARUNG TANGAN WAJIB': { icon:'🧤', label:'Sarung Tangan', key:'sarungtangan', hasSub:true, subKey:'jenisST', subLabel:'Jenis Sarung Tangan',
+    subOpts:[{v:'Pemeriksaan',l:'Pemeriksaan'},{v:'Bedah',l:'Bedah (Steril)'},{v:'Rumah Tangga',l:'Rumah Tangga'}] },
+  'MASKER WAJIB':        { icon:'😷', label:'Masker',        key:'masker',        hasSub:true, subKey:'jenisMasker', subLabel:'Jenis Masker',
+    subOpts:[{v:'Bedah',l:'Masker Bedah'},{v:'Respiratorik',l:'Respiratorik / N95'}] },
   'GAUN WAJIB':          { icon:'🥼', label:'Gaun/Apron',    key:'gaun' },
   'KACA MATA WAJIB':     { icon:'🥽', label:'Kaca Mata',     key:'kacamata' },
   'TOPI WAJIB':          { icon:'🪖', label:'Topi',          key:'topi' },
@@ -1028,8 +1081,7 @@ function updateClock() {
 const pages = ['dashboard','verifikasi','master','laporan'];
 function showPage(name, btn, bnId) {
   pages.forEach(p => document.getElementById('page-'+p).classList.toggle('active', p===name));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  // nav-btn dihapus, skip
   pages.forEach(p => {
     const el = document.getElementById('bn-'+p);
     if (el) el.classList.toggle('active', p===name);
@@ -1238,17 +1290,34 @@ function onTindakanChange() {
   if (!currentTindakan) return;
 
   // Panduan box
-  const wajib = Object.entries(APD_META)
-    .filter(([k]) => currentTindakan[k] === 'Ya')
-    .map(([k,v]) => v.icon + ' ' + v.label);
+  const wajib = Object.entries(APD_META).filter(([k]) => currentTindakan[k] === 'Ya').map(([k,v]) => {
+    let lbl = v.icon + ' ' + v.label;
+    if (k === 'SARUNG TANGAN WAJIB' && currentTindakan['JENIS ST WAJIB'])   lbl += ' (' + currentTindakan['JENIS ST WAJIB'] + ')';
+    if (k === 'MASKER WAJIB' && currentTindakan['JENIS MASKER WAJIB']) lbl += ' (' + currentTindakan['JENIS MASKER WAJIB'] + ')';
+    return lbl;
+  });
   document.getElementById('panduanText').textContent = wajib.length ? wajib.join(', ') : 'Tidak ada APD wajib';
   document.getElementById('panduanBox').style.display = 'block';
 
-  // Build APD checklist
+  // Build APD checklist dengan sub-field dinamis
   const cl = document.getElementById('apdChecklist');
   cl.innerHTML = Object.entries(APD_META).map(([k, v]) => {
     const req = currentTindakan[k] === 'Ya';
-    return `<label class="apd-check-item${req?' required':''}" id="ck-wrap-${v.key}" onclick="toggleCheck('${v.key}','${k}')">
+    // sub-field hint jenis wajib
+    let subHint = '';
+    if (req && k === 'SARUNG TANGAN WAJIB' && currentTindakan['JENIS ST WAJIB'])
+      subHint = `<div class="apd-sub" style="color:var(--blue)">Jenis: ${currentTindakan['JENIS ST WAJIB']}</div>`;
+    if (req && k === 'MASKER WAJIB' && currentTindakan['JENIS MASKER WAJIB'])
+      subHint = `<div class="apd-sub" style="color:var(--blue)">Jenis: ${currentTindakan['JENIS MASKER WAJIB']}</div>`;
+    // sub-select untuk jenis (muncul setelah centang)
+    const subSel = v.hasSub ? `
+      <div class="apd-sub-sel" id="sub-${v.key}" style="display:none;margin-top:6px">
+        <select class="form-input" id="sel-${v.subKey}" style="font-size:11px;padding:5px 8px" onclick="event.stopPropagation()">
+          <option value="">— Pilih jenis —</option>
+          ${v.subOpts.map(o=>`<option value="${o.v}">${o.l}</option>`).join('')}
+        </select>
+      </div>` : '';
+    return `<label class="apd-check-item${req?' required':''}" id="ck-wrap-${v.key}" onclick="toggleCheck('${v.key}','${k}',event)">
       <input type="checkbox" id="ck-${v.key}"/>
       <div class="apd-item-top">
         <span class="apd-emo">${v.icon}</span>
@@ -1256,6 +1325,8 @@ function onTindakanChange() {
         <span class="check-icon">✓</span>
       </div>
       ${req?`<div class="apd-sub">★ WAJIB</div>`:''}
+      ${subHint}
+      ${subSel}
     </label>`;
   }).join('');
 
@@ -1264,15 +1335,16 @@ function onTindakanChange() {
   document.getElementById('scanBtnHint').style.display = GAS_URL ? 'block' : 'none';
 }
 
-function toggleCheck(key, field) {
+function toggleCheck(key, field, event) {
+  if (event && event.target.tagName === 'SELECT') return; // jangan toggle kalau klik select
+  if (event && event.target.tagName === 'OPTION') return;
   const cb   = document.getElementById('ck-'+key);
   const wrap = document.getElementById('ck-wrap-'+key);
   cb.checked = !cb.checked;
   wrap.classList.toggle('checked', cb.checked);
-  // Show/hide masker sub-field
-  if (key === 'masker') {
-    document.getElementById('maskerSubField').classList.toggle('show', cb.checked);
-  }
+  // Show/hide sub-select
+  const subEl = document.getElementById('sub-'+key);
+  if (subEl) subEl.style.display = cb.checked ? 'block' : 'none';
 }
 
 // ── SUBMIT VERIFIKASI ───────────────────────────────────────
@@ -1295,15 +1367,29 @@ async function submitVerifikasi() {
     unit:         currentTindakan['UNIT/AREA'],
     idTindakan:   currentTindakan['ID'],
     tindakan:     currentTindakan['TINDAKAN'],
-    jenisMasker:  document.getElementById('jenisMaskerPakai').value,
+    jenisST:      document.getElementById('sel-jenisST')?.value || '',
+    jenisMasker:  document.getElementById('sel-jenisMasker')?.value || '',
     keterangan:   document.getElementById('scanKet').value.trim(),
     ...checked,
   };
 
   // Evaluasi lokal (untuk offline)
-  const apdKurang = Object.entries(APD_META)
-    .filter(([k, v]) => currentTindakan[k] === 'Ya' && checked[v.key] === 'Tidak')
-    .map(([,v]) => v.label);
+  const apdKurang = [];
+  Object.entries(APD_META).forEach(([k, v]) => {
+    if (currentTindakan[k] !== 'Ya') return;
+    if (checked[v.key] === 'Tidak') { apdKurang.push(v.label); return; }
+    // Cek kesesuaian jenis
+    if (k === 'SARUNG TANGAN WAJIB' && currentTindakan['JENIS ST WAJIB']) {
+      const dipakai = payload.jenisST || '';
+      if (dipakai && dipakai !== currentTindakan['JENIS ST WAJIB'])
+        apdKurang.push(`ST salah jenis (perlu: ${currentTindakan['JENIS ST WAJIB']}, dipakai: ${dipakai})`);
+    }
+    if (k === 'MASKER WAJIB' && currentTindakan['JENIS MASKER WAJIB']) {
+      const dipakai = payload.jenisMasker || '';
+      if (dipakai && dipakai !== currentTindakan['JENIS MASKER WAJIB'])
+        apdKurang.push(`Masker salah jenis (perlu: ${currentTindakan['JENIS MASKER WAJIB']}, dipakai: ${dipakai})`);
+    }
+  });
   const statusLokal = apdKurang.length === 0 ? 'PATUH' : 'TIDAK PATUH';
 
   const res = document.getElementById('scanResult');
@@ -1374,10 +1460,12 @@ function renderMaster() {
 
   document.getElementById('masterCount').textContent = `${filtered.length} / ${masterData.length} tindakan`;
   document.getElementById('masterBody').innerHTML = filtered.map((d,i) => {
-    const apdList = Object.entries(APD_META)
-      .filter(([k]) => d[k] === 'Ya')
-      .map(([k,v]) => `<span class="apd-chip required">${v.icon} ${v.label}</span>`)
-      .join('');
+    const apdList = Object.entries(APD_META).filter(([k]) => d[k] === 'Ya').map(([k,v]) => {
+      let lbl = v.label;
+      if (k === 'SARUNG TANGAN WAJIB' && d['JENIS ST WAJIB']) lbl += ' (' + d['JENIS ST WAJIB'] + ')';
+      if (k === 'MASKER WAJIB' && d['JENIS MASKER WAJIB']) lbl += ' (' + d['JENIS MASKER WAJIB'] + ')';
+      return `<span class="apd-chip required">${v.icon} ${lbl}</span>`;
+    }).join('');
     return `<tr>
       <td style="font-family:var(--mono);color:var(--muted)">${i+1}</td>
       <td><span class="unit-tag">${d['UNIT/AREA']}</span></td>
@@ -1404,11 +1492,16 @@ function openModal(id) {
 
   document.getElementById('modalApdGrid').innerHTML = Object.entries(APD_META).map(([k,v]) => {
     const req = d[k] === 'Ya';
+    let reqDetail = '';
+    if (req) {
+      if (k === 'SARUNG TANGAN WAJIB' && d['JENIS ST WAJIB']) reqDetail = ' — ' + d['JENIS ST WAJIB'];
+      if (k === 'MASKER WAJIB' && d['JENIS MASKER WAJIB']) reqDetail = ' — ' + d['JENIS MASKER WAJIB'];
+    }
     return `<div class="modal-apd-item${req?' required':''}">
       <span class="modal-apd-emo">${v.icon}</span>
       <div>
         <div class="modal-apd-name">${v.label}</div>
-        ${req?`<div class="modal-apd-req">★ WAJIB${k==='MASKER WAJIB'&&d['JENIS MASKER WAJIB']?' — '+d['JENIS MASKER WAJIB']:''}</div>`:''}
+        ${req?`<div class="modal-apd-req">★ WAJIB${reqDetail}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -1434,15 +1527,18 @@ async function submitAddMaster() {
   const nama = document.getElementById('addTindakan').value.trim();
   if (!unit || !nama) { showToast('Unit dan nama tindakan wajib diisi!', 'err'); return; }
 
+  const addJenisST     = document.getElementById('addJenisST').value;
+  const addJenisMasker = document.getElementById('addJenisMasker').value;
   const payload = {
     action:       'addMaster',
     unit,
     tindakan:     nama,
     kodeProfesi:  document.getElementById('addProfesi').value,
     risiko:       document.getElementById('addRisiko').value,
-    sarungtangan: document.getElementById('add-st').checked ? 'Ya':'Tidak',
-    masker:       document.getElementById('add-masker').checked ? 'Ya':'Tidak',
-    jenisMasker:  document.getElementById('addMaskerJenis').value,
+    sarungtangan: addJenisST ? 'Ya' : 'Tidak',
+    jenisST:      addJenisST,
+    masker:       addJenisMasker ? 'Ya' : 'Tidak',
+    jenisMasker:  addJenisMasker,
     gaun:         document.getElementById('add-gaun').checked ? 'Ya':'Tidak',
     kacamata:     document.getElementById('add-goggle').checked ? 'Ya':'Tidak',
     topi:         document.getElementById('add-topi').checked ? 'Ya':'Tidak',
@@ -1459,8 +1555,9 @@ async function submitAddMaster() {
     newEntry['KODE PROFESI'] = payload.kodeProfesi;
     newEntry['TINGKAT RISIKO'] = payload.risiko;
     newEntry['SARUNG TANGAN WAJIB'] = payload.sarungtangan;
-    newEntry['MASKER WAJIB'] = payload.masker;
-    newEntry['JENIS MASKER WAJIB'] = payload.jenisMasker;
+    newEntry['JENIS ST WAJIB']      = payload.jenisST;
+    newEntry['MASKER WAJIB']        = payload.masker;
+    newEntry['JENIS MASKER WAJIB']  = payload.jenisMasker;
     newEntry['GAUN WAJIB'] = payload.gaun;
     newEntry['KACA MATA WAJIB'] = payload.kacamata;
     newEntry['TOPI WAJIB'] = payload.topi;
@@ -1643,9 +1740,9 @@ function openEditMaster(id) {
   for (let opt of riskSel.options) opt.selected = opt.value === (d['TINGKAT RISIKO']||'Sedang');
 
   // APD checkboxes
-  document.getElementById('edit-st').checked     = d['SARUNG TANGAN WAJIB'] === 'Ya';
-  document.getElementById('edit-masker').checked = d['MASKER WAJIB'] === 'Ya';
-  document.getElementById('edit-gaun').checked   = d['GAUN WAJIB'] === 'Ya';
+  document.getElementById('editJenisST').value     = d['JENIS ST WAJIB'] || '';
+  document.getElementById('editJenisMasker').value = d['JENIS MASKER WAJIB'] || '';
+  document.getElementById('edit-gaun').checked     = d['GAUN WAJIB'] === 'Ya';
   document.getElementById('edit-goggle').checked = d['KACA MATA WAJIB'] === 'Ya';
   document.getElementById('edit-topi').checked   = d['TOPI WAJIB'] === 'Ya';
   document.getElementById('edit-boot').checked   = d['SEPATU BOOT WAJIB'] === 'Ya';
@@ -1671,9 +1768,10 @@ async function submitEditMaster() {
     tindakan:     nama,
     kodeProfesi:  document.getElementById('editProfesi').value,
     risiko:       document.getElementById('editRisiko').value,
-    sarungtangan: document.getElementById('edit-st').checked     ? 'Ya':'Tidak',
-    masker:       document.getElementById('edit-masker').checked  ? 'Ya':'Tidak',
-    jenisMasker:  document.getElementById('editMaskerJenis').value,
+    jenisST:      document.getElementById('editJenisST').value,
+    sarungtangan: document.getElementById('editJenisST').value ? 'Ya':'Tidak',
+    jenisMasker:  document.getElementById('editJenisMasker').value,
+    masker:       document.getElementById('editJenisMasker').value ? 'Ya':'Tidak',
     gaun:         document.getElementById('edit-gaun').checked    ? 'Ya':'Tidak',
     kacamata:     document.getElementById('edit-goggle').checked  ? 'Ya':'Tidak',
     topi:         document.getElementById('edit-topi').checked    ? 'Ya':'Tidak',
@@ -1717,10 +1815,111 @@ async function submitEditMaster() {
   }
 }
 
-// PWA
+// ── PWA INSTALL PROMPT ─────────────────────────────────────
+let deferredPrompt = null;
+
+// Register service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
+
+// Tangkap event beforeinstallprompt
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // Jangan tampilkan kalau sudah install
+  const installed = localStorage.getItem('apd_installed');
+  if (installed) return;
+
+  // Tampilkan banner setelah 1.5 detik (selalu, walau pernah dismiss)
+  setTimeout(() => showInstallBanner(), 1500);
+});
+
+// Kalau sudah diinstall sebagai PWA
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('apd_installed', '1');
+  hideInstallBanner();
+  showToast('✅ APD Monitor berhasil diinstall!', 'ok');
+});
+
+function showInstallBanner() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'block';
+}
+
+function hideInstallBanner() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+// Tombol Install
+document.addEventListener('DOMContentLoaded', () => {
+  const installBtn = document.getElementById('installBtn');
+  const dismissBtn = document.getElementById('installDismiss');
+  const laterBtn   = document.getElementById('installLater');
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        // Fallback: guide manual untuk iOS
+        showIOSGuide();
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      hideInstallBanner();
+      if (outcome === 'accepted') {
+        localStorage.setItem('apd_installed', '1');
+        showToast('✅ Menginstall APD Monitor...', 'ok');
+      }
+    });
+  }
+
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      hideInstallBanner();
+    });
+  }
+
+  if (laterBtn) {
+    laterBtn.addEventListener('click', () => {
+      hideInstallBanner();
+    });
+  }
+});
+
+// iOS tidak support beforeinstallprompt — deteksi manual
+function isIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+function isInStandaloneMode() {
+  return window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+// Tampilkan guide iOS jika belum install
+if (isIOS() && !isInStandaloneMode()) {
+  const installed = localStorage.getItem('apd_installed');
+  if (!installed) {
+    setTimeout(() => showIOSBanner(), 1500);
+  }
+}
+
+function showIOSBanner() {
+  // Untuk iOS: tampilkan banner dengan instruksi manual
+  const banner = document.getElementById('installBanner');
+  if (!banner) return;
+  document.getElementById('installBtn').textContent = '📖 Cara Install';
+  banner.style.display = 'block';
+}
+
+function showIOSGuide() {
+  // Tampilkan modal guide iOS
+  const guide = document.getElementById('iosGuideOverlay');
+  if (guide) guide.classList.add('open');
+}
+
 </script>
 </body>
 </html>
