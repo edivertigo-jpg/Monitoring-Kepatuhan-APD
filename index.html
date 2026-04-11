@@ -662,10 +662,42 @@ body{
 <!-- ══════════ LAPORAN ══════════ -->
 <div class="page" id="page-laporan">
 
-  <div class="grid3">
+  <!-- Filter bar -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Unit</label>
+        <select class="filter-sel" id="lapUnit" onchange="renderLaporan()" style="width:100%">
+          <option value="">Semua Unit</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Status</label>
+        <select class="filter-sel" id="lapStatus" onchange="renderLaporan()" style="width:100%">
+          <option value="">Semua Status</option>
+          <option value="PATUH">Patuh</option>
+          <option value="TIDAK PATUH">Tidak Patuh</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Dari Tanggal</label>
+        <input type="date" class="filter-sel" id="lapDateFrom" onchange="renderLaporan()" style="width:100%;font-family:var(--sans);font-size:12px"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Sampai Tanggal</label>
+        <input type="date" class="filter-sel" id="lapDateTo" onchange="renderLaporan()" style="width:100%;font-family:var(--sans);font-size:12px"/>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+        <button class="btn-outline" onclick="resetLaporanFilter()" style="font-size:11px;padding:8px 14px;white-space:nowrap">🔄 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary cards -->
+  <div class="grid3" style="margin-bottom:14px">
     <div class="card">
-      <div class="card-title">📊 Ringkasan Total</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="card-title">📊 Ringkasan</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
         <div style="display:flex;justify-content:space-between;font-size:13px">
           <span style="color:var(--muted)">Total verifikasi</span>
           <span style="font-family:var(--mono);font-weight:700" id="rep-total">—</span>
@@ -694,12 +726,57 @@ body{
     </div>
   </div>
 
-  <div class="card">
-    <div class="card-title">🗒️ Log Verifikasi Terbaru</div>
-    <div id="rep-log"><div class="loading-overlay"><div class="spinner"></div>Memuat log...</div></div>
+  <!-- Tabel Detail seperti format laporan Excel -->
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div class="card-title" style="margin-bottom:0">📋 Detail Verifikasi APD</div>
+      <span style="font-size:11px;font-family:var(--mono);color:var(--muted)" id="rep-count">—</span>
+    </div>
+    <div style="overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)">
+      <table id="rep-detail-table" style="width:100%;border-collapse:collapse;min-width:900px">
+        <thead>
+          <!-- Baris 1: Group header -->
+          <tr style="background:var(--navy);color:#fff">
+            <th rowspan="3" style="padding:10px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">NO</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">UNIT</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">JENIS TINDAKAN</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">PROFESI</th>
+            <th colspan="10" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;text-align:center;border-right:1px solid rgba(255,255,255,0.15)">JENIS APD YANG DIGUNAKAN</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">STATUS</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);vertical-align:middle">WAKTU</th>
+            <th rowspan="3" style="padding:10px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;vertical-align:middle">KET</th>
+          </tr>
+          <!-- Baris 2: Sub-group -->
+          <tr style="background:#1a4a82;color:rgba(255,255,255,0.9)">
+            <th colspan="3" style="padding:6px 10px;font-size:9px;text-align:center;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);border-bottom:1px solid rgba(255,255,255,0.15)">🧤 SARUNG TANGAN LENGKAP</th>
+            <th colspan="2" style="padding:6px 10px;font-size:9px;text-align:center;text-transform:uppercase;letter-spacing:.5px;border-right:1px solid rgba(255,255,255,0.15);border-bottom:1px solid rgba(255,255,255,0.15)">😷 MASKER</th>
+            <th rowspan="2" style="padding:6px 10px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);vertical-align:middle">🥼<br>GAUN</th>
+            <th rowspan="2" style="padding:6px 10px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);vertical-align:middle">🥽<br>KACA MATA</th>
+            <th rowspan="2" style="padding:6px 10px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);vertical-align:middle">🪖<br>TOPI</th>
+            <th rowspan="2" style="padding:6px 10px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);vertical-align:middle">🥾<br>SEPATU BOOT</th>
+            <th rowspan="2" style="padding:6px 10px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1);vertical-align:middle">👟<br>SEPATU KERJA</th>
+          </tr>
+          <!-- Baris 3: Detail kolom APD -->
+          <tr style="background:#1e4a7a;color:rgba(255,255,255,0.85)">
+            <th style="padding:6px 8px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1)">Pemeriksaan</th>
+            <th style="padding:6px 8px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1)">Bedah</th>
+            <th style="padding:6px 8px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.15)">Rumah Tangga</th>
+            <th style="padding:6px 8px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.1)">Bedah</th>
+            <th style="padding:6px 8px;font-size:9px;text-align:center;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.15)">Respiratorik</th>
+          </tr>
+        </thead>
+        <tbody id="rep-detail-body">
+          <tr><td colspan="18"><div class="loading-overlay"><div class="spinner"></div>Memuat data...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
+  <!-- Export bar -->
   <div class="export-bar">
+    <button class="btn-primary" onclick="exportExcel()" style="width:auto;padding:10px 20px;font-size:12px;background:var(--teal)">
+      📥 Export Excel (.xlsx)
+    </button>
     <button class="btn-primary" onclick="exportCSV()" style="width:auto;padding:10px 20px;font-size:12px">
       ⬇ Export CSV
     </button>
@@ -1570,36 +1647,111 @@ async function submitAddMaster() {
 }
 
 // ── LAPORAN ──────────────────────────────────────────────────
+let allLaporanRows = []; // cache semua rows untuk filter & export
+
 async function renderLaporan() {
+  // Init unit filter dropdown
+  const lapUnitSel = document.getElementById('lapUnit');
+  if (lapUnitSel && lapUnitSel.options.length <= 1) {
+    const units = [...new Set(masterData.map(d => d['UNIT/AREA']))].sort();
+    units.forEach(u => { const o = document.createElement('option'); o.value=u; o.textContent=u; lapUnitSel.appendChild(o); });
+  }
+
   if (!GAS_URL) {
     const log = JSON.parse(localStorage.getItem('apd_log_offline')||'[]');
-    renderLaporanData({
-      total: log.length, patuh: log.filter(l=>l.status==='PATUH').length,
-      tidakPatuh: log.filter(l=>l.status!=='PATUH').length,
-      rate: log.length ? Math.round(log.filter(l=>l.status==='PATUH').length/log.length*100) : 0,
-      byUnit: {},
-      recent: log.slice(0,20).map(l=>({
-        ts:l.ts?.slice(0,16)||'', unit:l.unit, tindakan:l.tindakan,
-        petugas:l.namaPetugas, status:l.status, apdKurang:l.apdKurang?.join(';')||'', ruangan:l.ruangan,
-      }))
-    });
+    allLaporanRows = log.map(l => ({
+      ts: l.ts?.slice(0,16)||'',
+      unit: l.unit||'', tindakan: l.tindakan||'',
+      petugas: l.namaPetugas||l.petugas||'', profesi: l.kodeProfesi||'',
+      ruangan: l.ruangan||'',
+      status: l.status||'',
+      apdKurang: Array.isArray(l.apdKurang) ? l.apdKurang.join('; ') : (l.apdKurang||''),
+      sarungtangan: l.sarungtangan||'Tidak',
+      masker: l.masker||'Tidak',
+      gaun: l.gaun||'Tidak',
+      kacamata: l.kacamata||'Tidak',
+      topi: l.topi||'Tidak',
+      sepatuboot: l.sepatuboot||'Tidak',
+      keterangan: l.keterangan||'',
+    }));
+    renderLaporanData(allLaporanRows);
     return;
   }
   try {
     const res = await apiGet('getSummary');
-    if (res.status === 'ok') renderLaporanData(res.data);
+    if (res.status === 'ok') {
+      const recent = res.data.recent || [];
+      allLaporanRows = recent.map(r => ({
+        ts: r.ts||'', unit: r.unit||'', tindakan: r.tindakan||'',
+        petugas: r.petugas||'', profesi: r.profesi||r.kodeProfesi||'',
+        ruangan: r.ruangan||'', status: r.status||'',
+        apdKurang: r.apdKurang||'',
+        sarungtangan: r.sarungtangan||'Tidak',
+        masker: r.masker||'Tidak',
+        gaun: r.gaun||'Tidak',
+        kacamata: r.kacamata||'Tidak',
+        topi: r.topi||'Tidak',
+        sepatuboot: r.sepatuboot||'Tidak',
+        keterangan: r.keterangan||'',
+      }));
+      renderLaporanData(allLaporanRows, res.data);
+    }
   } catch(e) {
     showToast('Gagal memuat laporan', 'err');
   }
 }
 
-function renderLaporanData(d) {
-  document.getElementById('rep-total').textContent = d.total || 0;
-  document.getElementById('rep-ok').textContent    = d.patuh || 0;
-  document.getElementById('rep-fail').textContent  = d.tidakPatuh || 0;
-  document.getElementById('rep-rate').textContent  = d.total ? d.rate+'%' : '—';
+function resetLaporanFilter() {
+  document.getElementById('lapUnit').value = '';
+  document.getElementById('lapStatus').value = '';
+  document.getElementById('lapDateFrom').value = '';
+  document.getElementById('lapDateTo').value = '';
+  renderLaporan();
+}
 
-  const byUnit = d.byUnit || {};
+function getFilteredRows() {
+  const unit   = document.getElementById('lapUnit')?.value||'';
+  const status = document.getElementById('lapStatus')?.value||'';
+  const from   = document.getElementById('lapDateFrom')?.value||'';
+  const to     = document.getElementById('lapDateTo')?.value||'';
+  return allLaporanRows.filter(r => {
+    if (unit   && r.unit !== unit) return false;
+    if (status && r.status !== status) return false;
+    if (from   && r.ts && r.ts.slice(0,10) < from) return false;
+    if (to     && r.ts && r.ts.slice(0,10) > to) return false;
+    return true;
+  });
+}
+
+function apdSymbol(val) {
+  return val === 'Ya'
+    ? `<span style="color:var(--green);font-weight:700;font-size:14px">✓</span>`
+    : `<span style="color:var(--danger);font-weight:700;font-size:14px">✗</span>`;
+}
+
+function renderLaporanData(rows, summaryOverride) {
+  const filtered = getFilteredRows();
+
+  // Summary stats from filtered rows
+  const total = filtered.length;
+  const patuh = filtered.filter(r=>r.status==='PATUH').length;
+  const tidakPatuh = total - patuh;
+  const rate = total ? Math.round(patuh/total*100) : 0;
+
+  document.getElementById('rep-total').textContent = total;
+  document.getElementById('rep-ok').textContent    = patuh;
+  document.getElementById('rep-fail').textContent  = tidakPatuh;
+  document.getElementById('rep-rate').textContent  = total ? rate+'%' : '—';
+  document.getElementById('rep-count').textContent = `${filtered.length} data`;
+
+  // byUnit from filtered
+  const byUnit = {};
+  filtered.forEach(r => {
+    if (!r.unit) return;
+    if (!byUnit[r.unit]) byUnit[r.unit] = {total:0, patuh:0};
+    byUnit[r.unit].total++;
+    if (r.status==='PATUH') byUnit[r.unit].patuh++;
+  });
   const sorted = Object.entries(byUnit).filter(([,v])=>v.total>0)
     .map(([k,v])=>({k,r:Math.round(v.patuh/v.total*100),total:v.total}))
     .sort((a,b)=>b.r-a.r);
@@ -1616,21 +1768,137 @@ function renderLaporanData(d) {
       <span style="font-family:var(--mono);color:${s.r<70?'var(--danger)':'var(--warn)'}">${s.r}%</span>
     </div>`).join('') || '<div class="empty-state"><p>Belum ada data</p></div>';
 
-  const recent = d.recent || [];
-  document.getElementById('rep-log').innerHTML = recent.length ? recent.map(r=>
-    `<div class="rep-log-item">
-      <div class="rep-status ${r.status==='PATUH'?'rep-ok':'rep-fail'}"></div>
-      <div style="flex:1">
-        <div class="rep-log-main">${r.petugas||'—'} — ${r.tindakan}</div>
-        <div class="rep-log-sub">${r.unit}${r.ruangan?' · '+r.ruangan:''}
-          · ${r.status==='PATUH'
-            ?'<span style="color:var(--green);font-weight:600">Patuh</span>'
-            :`<span style="color:var(--danger);font-weight:600">Tidak patuh: ${r.apdKurang}</span>`}
-        </div>
-        <div class="rep-log-time">${r.ts}</div>
-      </div>
-    </div>`).join('')
-    : '<div class="empty-state"><div class="icon">📋</div><p>Belum ada log verifikasi</p></div>';
+  // Detail table like Excel format
+  const tbody = document.getElementById('rep-detail-body');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><div class="icon">📋</div><p>Belum ada data verifikasi</p></div></td></tr>`;
+    return;
+  }
+
+  // Helper: cek apakah jenis ST cocok dengan kolom
+  function stSymbol(r, jenis) {
+    if (r.sarungtangan !== 'Ya') return apdSymbol('Tidak');
+    const j = (r.jenisST || '').toLowerCase();
+    const match = {
+      'Pemeriksaan': j.includes('periksa') || j === 'pemeriksaan',
+      'Bedah':       j.includes('bedah') || j.includes('steril'),
+      'Rumah Tangga': j.includes('rumah'),
+    };
+    return match[jenis] ? apdSymbol('Ya') : apdSymbol('Tidak');
+  }
+
+  function maskerSymbol(r, jenis) {
+    if (r.masker !== 'Ya') return apdSymbol('Tidak');
+    const j = (r.jenisMasker || '').toLowerCase();
+    const match = {
+      'Bedah':        j.includes('bedah'),
+      'Respiratorik': j.includes('respirat') || j.includes('n95'),
+    };
+    return match[jenis] ? apdSymbol('Ya') : apdSymbol('Tidak');
+  }
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const isPatuh = r.status === 'PATUH';
+    const statusPill = isPatuh
+      ? `<span class="pill pill-ok">Patuh</span>`
+      : `<span class="pill pill-danger">Tidak Patuh</span>`;
+    const ket = isPatuh
+      ? (r.keterangan || 'Sesuai')
+      : (r.apdKurang ? `Tidak sesuai: ${r.apdKurang}` : (r.keterangan || 'Tidak sesuai'));
+    const td = 'style="text-align:center;border-right:1px solid var(--border);padding:8px 6px"';
+    return `<tr style="${i%2===1?'background:var(--off)':''}">
+      <td style="text-align:center;font-family:var(--mono);color:var(--muted);font-size:11px;border-right:1px solid var(--border);padding:9px 8px">${i+1}</td>
+      <td style="font-size:11px;border-right:1px solid var(--border);padding:9px 12px;white-space:nowrap"><span class="unit-tag">${r.unit||'—'}</span></td>
+      <td style="font-weight:600;font-size:12px;border-right:1px solid var(--border);padding:9px 12px;min-width:140px">${r.tindakan||'—'}</td>
+      <td style="font-size:11px;color:var(--muted);border-right:1px solid var(--border);padding:9px 12px;white-space:nowrap">${r.profesi||r.petugas||'—'}</td>
+      <td ${td}>${stSymbol(r,'Pemeriksaan')}</td>
+      <td ${td}>${stSymbol(r,'Bedah')}</td>
+      <td style="text-align:center;border-right:2px solid var(--border);padding:8px 6px">${stSymbol(r,'Rumah Tangga')}</td>
+      <td ${td}>${maskerSymbol(r,'Bedah')}</td>
+      <td style="text-align:center;border-right:2px solid var(--border);padding:8px 6px">${maskerSymbol(r,'Respiratorik')}</td>
+      <td ${td}>${apdSymbol(r.gaun)}</td>
+      <td ${td}>${apdSymbol(r.kacamata)}</td>
+      <td ${td}>${apdSymbol(r.topi)}</td>
+      <td ${td}>${apdSymbol(r.sepatuboot)}</td>
+      <td style="text-align:center;border-right:2px solid var(--border);padding:8px 6px">${apdSymbol(r.sepatukerja)}</td>
+      <td style="border-right:1px solid var(--border);padding:9px 10px">${statusPill}</td>
+      <td style="font-size:10px;font-family:var(--mono);color:var(--muted);border-right:1px solid var(--border);padding:9px 8px;white-space:nowrap">${r.ts||'—'}</td>
+      <td style="font-size:11px;color:var(--muted);padding:9px 12px;max-width:180px">${ket}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EXPORT EXCEL ──────────────────────────────────────────────
+function exportExcel() {
+  const filtered = getFilteredRows();
+  if (!filtered.length) { showToast('Belum ada data untuk diexport', 'err'); return; }
+
+  // Load SheetJS dari CDN kalau belum ada
+  function doExport() {
+    const XLSX = window.XLSX;
+    const now = new Date();
+    const tgl = now.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'});
+
+    // Sheet 1: Detail - header 2 baris seperti tabel
+    const wsData = [];
+    wsData.push(['NO','UNIT','JENIS TINDAKAN & INDIKASI','PROFESI','SARUNG TANGAN PEMERIKSAAN','SARUNG TANGAN BEDAH','SARUNG TANGAN RUMAH TANGGA','MASKER BEDAH','MASKER RESPIRATORIK','GAUN','KACA MATA','TOPI','SEPATU BOOT','SEPATU KERJA','STATUS','WAKTU','KETERANGAN']);
+
+    filtered.forEach((r,i) => {
+      const toSym = v => v==='Ya' ? '✓' : 'X';
+      const stP = (r.sarungtangan==='Ya' && (r.jenisST||'').toLowerCase().includes('periksa')) ? '✓' : 'X';
+      const stB = (r.sarungtangan==='Ya' && ((r.jenisST||'').toLowerCase().includes('bedah')||(r.jenisST||'').toLowerCase().includes('steril'))) ? '✓' : 'X';
+      const stRT = (r.sarungtangan==='Ya' && (r.jenisST||'').toLowerCase().includes('rumah')) ? '✓' : 'X';
+      const mB  = (r.masker==='Ya' && (r.jenisMasker||'').toLowerCase().includes('bedah')) ? '✓' : 'X';
+      const mR  = (r.masker==='Ya' && ((r.jenisMasker||'').toLowerCase().includes('respirat')||(r.jenisMasker||'').toLowerCase().includes('n95'))) ? '✓' : 'X';
+      const ket = r.status==='PATUH'
+        ? (r.keterangan||'Sesuai')
+        : (r.apdKurang ? `Tidak sesuai: ${r.apdKurang}` : (r.keterangan||'Tidak sesuai'));
+      wsData.push([
+        i+1, r.unit||'', r.tindakan||'', r.profesi||r.petugas||'',
+        stP, stB, stRT, mB, mR,
+        toSym(r.gaun), toSym(r.kacamata), toSym(r.topi), toSym(r.sepatuboot), toSym(r.sepatukerja||'Tidak'),
+        r.status||'', r.ts||'', ket,
+      ]);
+    });
+
+    const wsDetail = XLSX.utils.aoa_to_sheet(wsData);
+    // Column widths
+    wsDetail['!cols'] = [
+      {wch:5},{wch:30},{wch:15},{wch:16},{wch:12},{wch:16},{wch:14},{wch:16},{wch:10},{wch:10},{wch:10},{wch:12},{wch:13},{wch:14},{wch:18},{wch:17},{wch:50}
+    ];
+
+    // Sheet 2: Rekap per Unit
+    const byUnit = {};
+    filtered.forEach(r => {
+      if (!byUnit[r.unit]) byUnit[r.unit] = {total:0,patuh:0,tidakPatuh:0};
+      byUnit[r.unit].total++;
+      if (r.status==='PATUH') byUnit[r.unit].patuh++; else byUnit[r.unit].tidakPatuh++;
+    });
+    const wsSummaryData = [['UNIT','TOTAL VERIFIKASI','PATUH','TIDAK PATUH','RATE KEPATUHAN (%)']];
+    Object.entries(byUnit).sort((a,b)=>b[1].total-a[1].total).forEach(([u,v]) => {
+      wsSummaryData.push([u, v.total, v.patuh, v.tidakPatuh, v.total?Math.round(v.patuh/v.total*100):0]);
+    });
+    const total = filtered.length;
+    const patuh = filtered.filter(r=>r.status==='PATUH').length;
+    wsSummaryData.push(['TOTAL', total, patuh, total-patuh, total?Math.round(patuh/total*100):0]);
+    const wsSummary = XLSX.utils.aoa_to_sheet(wsSummaryData);
+    wsSummary['!cols'] = [{wch:22},{wch:18},{wch:10},{wch:14},{wch:22}];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsDetail, 'Laporan Verifikasi APD');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Rekap Per Unit');
+
+    const fileName = `APD_Laporan_${now.toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('✅ File Excel diunduh!', 'ok');
+  }
+
+  if (window.XLSX) { doExport(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload = doExport;
+  s.onerror = () => showToast('Gagal load library Excel', 'err');
+  document.head.appendChild(s);
 }
 
 function exportCSV() {
