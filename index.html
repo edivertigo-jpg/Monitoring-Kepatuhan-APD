@@ -69,9 +69,9 @@ body{
 .logo-wrap{
   width:38px;height:38px;border-radius:50%;
   overflow:hidden;display:flex;align-items:center;justify-content:center;
-  background:transparent;flex-shrink:0;
+  background:#ffffff;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,0.25);
 }
-.logo-wrap img{width:100%;height:100%;object-fit:contain;border-radius:50%}
+.logo-wrap img{width:90%;height:90%;object-fit:contain;}
 .brand-text{}
 .brand-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.2px;line-height:1.1}
 .brand-sub{font-size:10px;color:var(--sage);letter-spacing:0.3px;margin-top:1px}
@@ -400,6 +400,13 @@ body{
 }
 .master-add-btn:hover{background:#00796b}
 .master-count{font-size:11px;color:var(--muted);font-family:var(--mono);margin-left:auto}
+.edit-btn{
+  width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);
+  background:var(--off);cursor:pointer;font-size:13px;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.edit-btn:hover{background:var(--navy);border-color:var(--navy);filter:grayscale(0) brightness(1.2);}
 
 /* ══ BOTTOM NAV ════════════════════════════════════════════ */
 .bottom-nav{
@@ -489,7 +496,7 @@ body{
 <header class="topbar">
   <a class="brand" href="#">
     <div class="logo-wrap">
-      <img src="logo_surya-removebg-preview.png" alt="RSH" id="logoImg"/>
+      <img src="logo_surya.png" alt="RSH" id="logoImg"/>
     </div>
     <div class="brand-text">
       <div class="brand-name">APD Monitor</div>
@@ -685,7 +692,7 @@ body{
     <table class="master-table">
       <thead>
         <tr>
-          <th>#</th><th>Unit</th><th>Tindakan</th><th>Profesi</th><th>Risiko</th><th>APD Wajib</th><th>Sumber</th>
+          <th>#</th><th>Unit</th><th>Tindakan</th><th>Profesi</th><th>Risiko</th><th>APD Wajib</th><th>Sumber</th><th style="width:80px;text-align:center">Aksi</th>
         </tr>
       </thead>
       <tbody id="masterBody">
@@ -865,6 +872,79 @@ body{
       <button class="btn-primary" onclick="saveSettings()">💾 Simpan</button>
       <button class="btn-outline" onclick="testConnection()">🔌 Test Koneksi</button>
       <button class="btn-outline" onclick="closeSettings()" style="color:var(--muted);border-color:var(--border)">Tutup</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ MODAL EDIT TINDAKAN ══ -->
+<div class="modal-overlay" id="editMasterOverlay" onclick="closeEditMaster(event)">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Tindakan</div>
+      <button class="modal-close" onclick="closeEditMaster()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div class="form-group full" style="grid-column:1/-1">
+        <label class="form-label">Unit / Area *</label>
+        <select class="form-input" id="editUnit"></select>
+      </div>
+      <div class="form-group full" style="grid-column:1/-1">
+        <label class="form-label">Nama Tindakan *</label>
+        <input class="form-input" id="editTindakan" placeholder="Nama tindakan..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Kode Profesi</label>
+        <select class="form-input" id="editProfesi">
+          <option value="Perawat">Perawat</option>
+          <option value="Dokter">Dokter</option>
+          <option value="Bidan">Bidan</option>
+          <option value="Apoteker">Apoteker</option>
+          <option value="Penunjang">Penunjang</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tingkat Risiko</label>
+        <select class="form-input" id="editRisiko">
+          <option value="Rendah">Rendah</option>
+          <option value="Sedang">Sedang</option>
+          <option value="Tinggi">Tinggi</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">APD Wajib</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-st" style="accent-color:var(--blue)"> Sarung Tangan</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-masker"> Masker</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-gaun"> Gaun/Apron</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-goggle"> Kaca Mata</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-topi"> Topi</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" id="edit-boot"> Sepatu Boot</label>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label class="form-label">Jenis Masker (jika masker wajib)</label>
+      <select class="form-input" id="editMaskerJenis">
+        <option value="">— Tidak perlu —</option>
+        <option value="Bedah">Bedah</option>
+        <option value="N95/Respirator">N95/Respirator</option>
+        <option value="Respiratorik">Respiratorik</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Sumber Acuan</label>
+      <input class="form-input" id="editSumber" placeholder="RSH / PMK27 / PMK27+RSH"/>
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label class="form-label">Status</label>
+      <select class="form-input" id="editAktif">
+        <option value="Ya">Aktif</option>
+        <option value="Tidak">Non-aktif</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary green" onclick="submitEditMaster()" style="flex:1">💾 Simpan Perubahan</button>
+      <button class="btn-outline" onclick="closeEditMaster()" style="color:var(--muted);border-color:var(--border)">Batal</button>
     </div>
   </div>
 </div>
@@ -1298,14 +1378,17 @@ function renderMaster() {
       .filter(([k]) => d[k] === 'Ya')
       .map(([k,v]) => `<span class="apd-chip required">${v.icon} ${v.label}</span>`)
       .join('');
-    return `<tr onclick="openModal('${d['ID']}')">
+    return `<tr>
       <td style="font-family:var(--mono);color:var(--muted)">${i+1}</td>
       <td><span class="unit-tag">${d['UNIT/AREA']}</span></td>
-      <td style="font-weight:600">${d['TINDAKAN']}</td>
+      <td style="font-weight:600;cursor:pointer" onclick="openModal('${d['ID']}')">${d['TINDAKAN']}</td>
       <td style="font-size:11px;color:var(--muted)">${d['KODE PROFESI']||''}</td>
       <td><span class="risk-badge ${RISK_COLOR_MAP[d['TINGKAT RISIKO']]||'risk-1'}">${d['TINGKAT RISIKO']}</span></td>
       <td><div class="apd-chips">${apdList||'<span class="apd-chip">—</span>'}</div></td>
       <td style="font-size:10px;color:var(--muted);font-family:var(--mono)">${d['SUMBER ACUAN']||''}</td>
+      <td style="text-align:center">
+        <button class="edit-btn" onclick="openEditMaster('${d['ID']}')" title="Edit tindakan">✏️</button>
+      </td>
     </tr>`;
   }).join('') || `<tr><td colspan="7"><div class="empty-state"><div class="icon">🔍</div><p>Tidak ada tindakan ditemukan</p></div></td></tr>`;
 }
@@ -1530,6 +1613,108 @@ function showToast(msg, type='') {
   t.textContent = msg;
   t.className = 'toast show ' + type;
   setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+
+// ── EDIT TINDAKAN ────────────────────────────────────────────
+let editingId = null;
+
+function openEditMaster(id) {
+  const d = masterData.find(x => x['ID'] === id);
+  if (!d) return;
+  editingId = id;
+
+  // Populate unit dropdown
+  const units = [...new Set(masterData.map(x => x['UNIT/AREA']))].sort();
+  const editUnitSel = document.getElementById('editUnit');
+  editUnitSel.innerHTML = units.map(u => `<option value="${u}" ${u===d['UNIT/AREA']?'selected':''}>${u}</option>`).join('');
+
+  document.getElementById('editTindakan').value    = d['TINDAKAN'] || '';
+  document.getElementById('editSumber').value      = d['SUMBER ACUAN'] || '';
+  document.getElementById('editAktif').value       = d['AKTIF'] || 'Ya';
+  document.getElementById('editMaskerJenis').value = d['JENIS MASKER WAJIB'] || '';
+
+  // Profesi
+  const profSel = document.getElementById('editProfesi');
+  for (let opt of profSel.options) opt.selected = opt.value === (d['KODE PROFESI']||'Perawat');
+
+  // Risiko
+  const riskSel = document.getElementById('editRisiko');
+  for (let opt of riskSel.options) opt.selected = opt.value === (d['TINGKAT RISIKO']||'Sedang');
+
+  // APD checkboxes
+  document.getElementById('edit-st').checked     = d['SARUNG TANGAN WAJIB'] === 'Ya';
+  document.getElementById('edit-masker').checked = d['MASKER WAJIB'] === 'Ya';
+  document.getElementById('edit-gaun').checked   = d['GAUN WAJIB'] === 'Ya';
+  document.getElementById('edit-goggle').checked = d['KACA MATA WAJIB'] === 'Ya';
+  document.getElementById('edit-topi').checked   = d['TOPI WAJIB'] === 'Ya';
+  document.getElementById('edit-boot').checked   = d['SEPATU BOOT WAJIB'] === 'Ya';
+
+  document.getElementById('editMasterOverlay').classList.add('open');
+}
+
+function closeEditMaster(e) {
+  if (!e || e.target.id==='editMasterOverlay' || e.target.classList.contains('modal-close'))
+    document.getElementById('editMasterOverlay').classList.remove('open');
+}
+
+async function submitEditMaster() {
+  if (!editingId) return;
+  const unit   = document.getElementById('editUnit').value;
+  const nama   = document.getElementById('editTindakan').value.trim();
+  if (!unit || !nama) { showToast('Unit dan nama tindakan wajib diisi!', 'err'); return; }
+
+  const payload = {
+    action:       'updateMaster',
+    id:            editingId,
+    unit,
+    tindakan:     nama,
+    kodeProfesi:  document.getElementById('editProfesi').value,
+    risiko:       document.getElementById('editRisiko').value,
+    sarungtangan: document.getElementById('edit-st').checked     ? 'Ya':'Tidak',
+    masker:       document.getElementById('edit-masker').checked  ? 'Ya':'Tidak',
+    jenisMasker:  document.getElementById('editMaskerJenis').value,
+    gaun:         document.getElementById('edit-gaun').checked    ? 'Ya':'Tidak',
+    kacamata:     document.getElementById('edit-goggle').checked  ? 'Ya':'Tidak',
+    topi:         document.getElementById('edit-topi').checked    ? 'Ya':'Tidak',
+    sepatuboot:   document.getElementById('edit-boot').checked    ? 'Ya':'Tidak',
+    sumber:       document.getElementById('editSumber').value,
+    aktif:        document.getElementById('editAktif').value,
+  };
+
+  // Update lokal dulu
+  const idx = masterData.findIndex(x => x['ID'] === editingId);
+  if (idx >= 0) {
+    masterData[idx] = {
+      ...masterData[idx],
+      'UNIT/AREA':           payload.unit,
+      'TINDAKAN':            payload.tindakan,
+      'KODE PROFESI':        payload.kodeProfesi,
+      'TINGKAT RISIKO':      payload.risiko,
+      'SARUNG TANGAN WAJIB': payload.sarungtangan,
+      'MASKER WAJIB':        payload.masker,
+      'JENIS MASKER WAJIB':  payload.jenisMasker,
+      'GAUN WAJIB':          payload.gaun,
+      'KACA MATA WAJIB':     payload.kacamata,
+      'TOPI WAJIB':          payload.topi,
+      'SEPATU BOOT WAJIB':   payload.sepatuboot,
+      'SUMBER ACUAN':        payload.sumber,
+      'AKTIF':               payload.aktif,
+    };
+  }
+
+  closeEditMaster();
+  renderMaster();
+  showToast('✅ Perubahan disimpan', 'ok');
+
+  // Sync ke Sheets kalau online
+  if (GAS_URL) {
+    try {
+      await apiPost(payload);
+    } catch(e) {
+      showToast('⚠️ Tersimpan lokal, gagal sync ke Sheets', 'err');
+    }
+  }
 }
 
 // PWA
