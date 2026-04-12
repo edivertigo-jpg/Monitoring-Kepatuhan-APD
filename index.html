@@ -1044,7 +1044,7 @@
             <label>Apps Script Web App URL</label>
             <div class="input-group">
               <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." 
-                value="https://script.google.com/macros/s/AKfycbznVGUUqOGbcmnD62OPomAgci_5WxPzP933Fk1yLzuFz3gzvV_cBw2qzLwgxNKYgccY/exec">
+                value="https://script.google.com/macros/s/AKfycbxUYX2DkMoCXLvvHqA7mg1S9Cs78oui3jqJbL5vkWpakBeo6ft7eYX9gfVr599mFgJbHw/exec">
               <button class="btn btn-primary" onclick="saveSheetConfig()">Simpan</button>
               <button class="btn btn-outline" onclick="testSheetConnection()">Test</button>
             </div>
@@ -2082,7 +2082,7 @@ function renderMaster() {
             <div style="display:grid;grid-template-columns:32px 1fr repeat(13,1fr);gap:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 16px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">
               <div></div>
               <div>Jenis Tindakan</div>
-              ${APD_UI.map(a => `<div style="text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 0;font-size:9px;">${a.icon}<br>${a.label}</div>`).join('')}
+              ${APD_UI.map(a => `<div style="text-align:center;padding:4px 2px;font-size:9px;line-height:1.3;">${a.icon}<br><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:52px;margin:0 auto;" title="${a.label}">${a.label}</span></div>`).join('')}
               <div style="text-align:center;font-size:9px;">Aksi</div>
             </div>
 
@@ -2162,7 +2162,7 @@ async function saveMaster() {
     }
     toast('Tindakan diperbarui ✓', 'success');
   } else {
-    const newId = 'local_' + Date.now();
+    const newId = String(Date.now()); // timestamp murni agar cocok dengan format Apps Script
     savedRow = { id: newId, area, tindakan, ...apdVals };
     masterData.push(savedRow);
     toast('Tindakan ditambahkan ✓', 'success');
@@ -2172,8 +2172,27 @@ async function saveMaster() {
   closeModal('modal-master');
   renderMaster();
 
-  // Sync ke Sheet (background)
-  await saveMasterToSheet(savedRow, false);
+  // Sync ke Sheet (background) + tampilkan status
+  const sheetUrl = localStorage.getItem('apd_sheet_url');
+  const syncStatus = document.getElementById('master-sync-status');
+  if (sheetUrl) {
+    if (syncStatus) syncStatus.innerHTML = '<span style="color:var(--warn)">⏳ Menyimpan ke Sheet...</span>';
+    try {
+      const res = await fetch(sheetUrl, {
+        method: 'POST', mode: 'cors', cache: 'no-cache',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'saveMasterRow', data: savedRow })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        if (syncStatus) syncStatus.innerHTML = '<span style="color:var(--success)">✅ Tersimpan ke Sheet</span>';
+        setTimeout(() => { if (syncStatus) syncStatus.innerHTML = ''; }, 3000);
+      } else { throw new Error(json.error || 'Response tidak valid'); }
+    } catch(e) {
+      if (syncStatus) syncStatus.innerHTML = `<span style="color:var(--danger)">❌ Gagal simpan ke Sheet: ${e.message}</span>`;
+      toast('Tersimpan lokal. Gagal ke Sheet: ' + e.message, 'warn');
+    }
+  }
 }
 
 async function deleteMaster(id) {
@@ -2184,7 +2203,26 @@ async function deleteMaster(id) {
   renderMaster();
   toast('Tindakan dihapus', 'warn');
 
-  if (row) await saveMasterToSheet(row, true);
+  const sheetUrl = localStorage.getItem('apd_sheet_url');
+  const syncStatus = document.getElementById('master-sync-status');
+  if (row && sheetUrl) {
+    if (syncStatus) syncStatus.innerHTML = '<span style="color:var(--warn)">⏳ Menghapus dari Sheet...</span>';
+    try {
+      const res = await fetch(sheetUrl, {
+        method: 'POST', mode: 'cors', cache: 'no-cache',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'deleteMaster', id: row.id })
+      });
+      const json = await res.json();
+      if (json.ok) {
+        if (syncStatus) syncStatus.innerHTML = '<span style="color:var(--success)">✅ Dihapus dari Sheet</span>';
+        setTimeout(() => { if (syncStatus) syncStatus.innerHTML = ''; }, 3000);
+      } else { throw new Error(json.error || 'Response tidak valid'); }
+    } catch(e) {
+      if (syncStatus) syncStatus.innerHTML = `<span style="color:var(--danger)">❌ Gagal hapus dari Sheet: ${e.message}</span>`;
+      toast('Dihapus lokal. Gagal hapus dari Sheet: ' + e.message, 'warn');
+    }
+  }
 }
 
 function importFromSheet() {
@@ -2355,13 +2393,12 @@ if('serviceWorker' in navigator) {
 }
 
 // ===== INIT =====
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbznVGUUqOGbcmnD62OPomAgci_5WxPzP933Fk1yLzuFz3gzvV_cBw2qzLwgxNKYgccY/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxUYX2DkMoCXLvvHqA7mg1S9Cs78oui3jqJbL5vkWpakBeo6ft7eYX9gfVr599mFgJbHw/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Auto-init defaults
-  if (!localStorage.getItem('apd_sheet_url')) {
-    localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
-  }
+  // Selalu update URL ke versi terbaru (paksa overwrite URL lama)
+  localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
   if (!localStorage.getItem('apd_rs_name')) {
     localStorage.setItem('apd_rs_name', 'RS Surya');
   }
