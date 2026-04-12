@@ -482,7 +482,95 @@
     .overlay.open { display: block; }
   }
 
-  /* ===== SCROLLBAR ===== */
+  /* ===== APD GRID CARDS ===== */
+  .mini-dot {
+    width: 22px; height: 22px; border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: white; flex-shrink: 0;
+  }
+  .apd-card {
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 8px 12px;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    cursor: pointer;
+    transition: all .18s cubic-bezier(.4,0,.2,1);
+    position: relative;
+    background: white;
+    user-select: none;
+    text-align: center;
+  }
+  .apd-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(15,76,129,0.12); }
+  .apd-card.state-Y { border-color: var(--success); background: rgba(16,185,129,0.07); }
+  .apd-card.state-N { border-color: var(--danger); background: rgba(239,68,68,0.07); }
+  .apd-card.state-NA { border-color: var(--border); background: white; opacity: 0.65; }
+  .apd-card .apd-icon { font-size: 28px; line-height: 1; }
+  .apd-card .apd-name { font-size: 11px; font-weight: 600; color: var(--text2); line-height: 1.3; }
+  .apd-card .apd-wajib {
+    position: absolute; top: 6px; right: 6px;
+    font-size: 11px; color: var(--primary); font-weight: 800;
+    background: rgba(15,76,129,0.1); border-radius: 4px;
+    padding: 1px 4px; line-height: 1.4;
+  }
+  .apd-card .apd-status-indicator {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; margin-top: 2px;
+    transition: all .18s;
+  }
+  .apd-card.state-Y .apd-status-indicator { background: var(--success); color: white; }
+  .apd-card.state-N .apd-status-indicator { background: var(--danger); color: white; }
+  .apd-card.state-NA .apd-status-indicator { background: var(--border); color: var(--text3); }
+
+  /* Tindakan pill buttons */
+  .tindakan-pill {
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: white; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+    color: var(--text); transition: all .15s;
+    display: flex; align-items: center; gap: 8px;
+    text-align: left; line-height: 1.3;
+  }
+  .tindakan-pill:hover { border-color: var(--primary); color: var(--primary); background: rgba(15,76,129,0.04); }
+  .tindakan-pill.selected { border-color: var(--primary); background: var(--primary); color: white; }
+  .tindakan-pill .pill-num { font-size: 11px; font-weight: 700; opacity: 0.6; flex-shrink: 0; }
+
+  /* Saved tindakan card */
+  .saved-tindakan-card {
+    background: white; border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .saved-tindakan-header {
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+    cursor: pointer;
+  }
+  .saved-tindakan-header:hover { background: var(--bg); }
+  .saved-apd-mini {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;
+  }
+  .apd-mini-chip {
+    font-size: 10px; padding: 2px 7px; border-radius: 20px;
+    font-weight: 600; display: flex; align-items: center; gap: 3px;
+  }
+  .apd-mini-chip.used { background: rgba(16,185,129,0.15); color: #065f46; }
+  .apd-mini-chip.not-used { background: rgba(239,68,68,0.1); color: #991b1b; }
+
+  @media (max-width: 600px) {
+    #apd-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  }
+  @media (max-width: 400px) {
+    #apd-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
@@ -608,40 +696,36 @@
         <img src="logo_surya.png" alt="RS Surya" style="height:60px;width:60px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,0.15);padding:6px;flex-shrink:0;">
         <div>
           <h2>Form Audit Kepatuhan APD</h2>
-          <p>RS Surya — Pemantauan kepatuhan penggunaan Alat Pelindung Diri sesuai standar IPCN/PPI</p>
+          <p>RS Surya &nbsp;|&nbsp; Kolom: NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · APD (13 kolom) · STATUS · WAKTU · KET</p>
         </div>
       </div>
 
-      <!-- Info Audit -->
+      <!-- ═══ STEP 1: IDENTITAS (sesuai header sheet) ═══ -->
       <div class="card form-section">
-        <div class="form-section-title">📋 Informasi Audit</div>
+        <div class="form-section-title">📋 Identitas Laporan <span style="font-size:11px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;">— kolom NO, Tanggal, UNIT, AREA, PROFESI, WAKTU, KET</span></div>
         <div class="form-grid">
+
+          <!-- NO (auto dari JS, tampil saja) -->
           <div class="form-group">
-            <label>Tanggal Audit *</label>
+            <label>NO (otomatis)</label>
+            <input type="text" id="f-no" placeholder="Auto dari jumlah data" disabled style="background:var(--bg);color:var(--text2);">
+          </div>
+
+          <!-- Tanggal -->
+          <div class="form-group">
+            <label>Tanggal *</label>
             <input type="date" id="f-tanggal" required>
           </div>
+
+          <!-- UNIT -->
           <div class="form-group">
-            <label>Waktu Audit *</label>
-            <input type="time" id="f-waktu" required>
+            <label>UNIT / Ruangan *</label>
+            <input type="text" id="f-unit" placeholder="ICU, Poli Bedah, Gizi, Laundry..." required>
           </div>
+
+          <!-- AREA -->
           <div class="form-group">
-            <label>Nama Auditor *</label>
-            <input type="text" id="f-auditor" placeholder="Nama lengkap auditor" required>
-          </div>
-          <div class="form-group">
-            <label>Jabatan Auditor</label>
-            <input type="text" id="f-jabatan" placeholder="Perawat / IPCN / dll">
-          </div>
-          <div class="form-group">
-            <label>Nama Tenaga Kesehatan yang Diaudit *</label>
-            <input type="text" id="f-nakes" placeholder="Nama yang diaudit" required>
-          </div>
-          <div class="form-group">
-            <label>Profesi / Jabatan</label>
-            <input type="text" id="f-profesi" placeholder="Perawat / Bidan / dll">
-          </div>
-          <div class="form-group">
-            <label>Area / Ruangan *</label>
+            <label>AREA *</label>
             <select id="f-area" required onchange="filterFormByArea()">
               <option value="">-- Pilih Area --</option>
               <option>Perawatan NON ISO</option>
@@ -651,70 +735,99 @@
               <option>LAUNDRY</option>
             </select>
           </div>
+
+          <!-- PROFESI -->
           <div class="form-group">
-            <label>Shift</label>
-            <select id="f-shift">
-              <option value="">-- Pilih Shift --</option>
-              <option>Pagi (07.00-14.00)</option>
-              <option>Siang (14.00-21.00)</option>
-              <option>Malam (21.00-07.00)</option>
-            </select>
+            <label>PROFESI *</label>
+            <input type="text" id="f-profesi" placeholder="Perawat / Bidan / Ahli Gizi / Sanitasi / dll" required>
           </div>
+
+          <!-- WAKTU -->
+          <div class="form-group">
+            <label>WAKTU *</label>
+            <input type="time" id="f-waktu" required>
+          </div>
+
+          <!-- Nama Nakes (internal, tidak di header tapi dipakai rekap) -->
+          <div class="form-group">
+            <label>Nama Nakes (internal)</label>
+            <input type="text" id="f-nakes" placeholder="Nama lengkap yang diaudit">
+          </div>
+
+          <!-- Auditor (internal) -->
+          <div class="form-group">
+            <label>Nama Auditor (internal)</label>
+            <input type="text" id="f-auditor" placeholder="Nama auditor / IPCN">
+          </div>
+
+          <!-- KET -->
           <div class="form-group full">
-            <label>Keterangan / Catatan Umum</label>
-            <textarea id="f-ket" placeholder="Catatan tambahan..."></textarea>
+            <label>KET / Keterangan</label>
+            <input type="text" id="f-ket" placeholder="Keterangan tambahan untuk baris ini...">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ═══ STEP 2: JENIS TINDAKAN ═══ -->
+      <div class="card form-section" id="step-tindakan" style="display:none;">
+        <div class="form-section-title">🏥 JENIS TINDAKAN <span style="font-size:11px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;">— pilih tindakan yang diobservasi</span></div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+          <div class="search-box" style="flex:1;min-width:160px;">
+            <span class="icon">🔍</span>
+            <input type="text" id="tindakan-search" placeholder="Cari tindakan..." oninput="filterTindakan()">
+          </div>
+          <span style="font-size:12px;color:var(--text3);" id="tindakan-count"></span>
+        </div>
+        <div id="tindakan-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;max-height:280px;overflow-y:auto;padding-right:2px;"></div>
+      </div>
+
+      <!-- ═══ STEP 3: 13 APD GRID ═══ -->
+      <div id="apd-checklist-wrap" style="display:none;">
+        <div class="card form-section">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+            <div>
+              <div class="form-section-title" style="margin-bottom:6px;">🧤 JENIS APD YANG DIGUNAKAN</div>
+              <div id="apd-tindakan-label" style="font-size:14px;font-weight:700;color:var(--primary);background:rgba(15,76,129,0.07);padding:6px 12px;border-radius:8px;display:inline-block;"></div>
+              <div style="font-size:12px;color:var(--text2);margin-top:8px;">
+                Tap kartu → siklus: <strong style="color:var(--text3)">N/A</strong> → <strong style="color:var(--success)">✓ Digunakan</strong> → <strong style="color:var(--danger)">✗ Tidak Digunakan</strong>
+                &nbsp;|&nbsp; <span style="color:var(--primary);font-weight:700;">★ = Wajib sesuai guideline</span>
+              </div>
+            </div>
+            <div id="apd-status-badge-wrap"></div>
+          </div>
+
+          <!-- 13 APD GRID: 5 × 3 grid -->
+          <div id="apd-grid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px;"></div>
+
+          <!-- KET per tindakan -->
+          <div class="form-group" style="margin-bottom:14px;">
+            <label>KET tindakan ini (opsional)</label>
+            <input type="text" id="f-ket-tindakan" placeholder="Misal: APD tidak tersedia, kondisi darurat, dll...">
+          </div>
+
+          <!-- Tombol -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="backToTindakan()">← Ganti Tindakan</button>
+            <button class="btn btn-success" onclick="saveTindakanAudit()" style="flex:1;justify-content:center;min-width:150px;">
+              ✅ Simpan Baris Ini
+            </button>
           </div>
         </div>
-      </div>
 
-      <!-- Checklist APD -->
-      <div class="card form-section">
-        <div class="form-section-title">🧤 Checklist Kepatuhan APD per Tindakan</div>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;">
-          ✅ = Patuh &nbsp; ❌ = Tidak Patuh &nbsp; — = Tidak Berlaku (N/A)
-          <br><span style="color:var(--primary);font-weight:600;">Tanda ★ = APD wajib sesuai guideline</span>
-        </p>
-        <div class="apd-table-wrap">
-          <table class="apd-table" id="audit-table">
-            <thead>
-              <tr>
-                <th class="left" style="min-width:32px">No</th>
-                <th class="left" style="min-width:160px">Jenis Tindakan</th>
-                <th>Sarung Tangan Pemeriksaan</th>
-                <th>Sarung Tangan Bedah/Steril</th>
-                <th>Sarung Tangan Rumah Tangga</th>
-                <th>Masker Bedah</th>
-                <th>Masker N95/Respiratorik</th>
-                <th>Goggle</th>
-                <th>Faceshield</th>
-                <th>Gaun</th>
-                <th>Celemek</th>
-                <th>Apron</th>
-                <th>Topi</th>
-                <th>Sepatu Boots</th>
-                <th>Sepatu Kerja</th>
-                <th>Status</th>
-                <th style="min-width:120px">Catatan</th>
-              </tr>
-            </thead>
-            <tbody id="audit-tbody">
-              <tr>
-                <td colspan="17" class="empty-state">
-                  <span class="icon">🏥</span>
-                  <h3>Pilih Area terlebih dahulu</h3>
-                  <p>Tindakan akan muncul sesuai area yang dipilih</p>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Preview baris laporan yang sudah diisi -->
+        <div id="saved-tindakan-list"></div>
+
+        <!-- Submit akhir -->
+        <div style="display:flex;gap:12px;justify-content:flex-end;padding-bottom:32px;flex-wrap:wrap;">
+          <button class="btn btn-outline" onclick="resetForm()">🔄 Reset Semua</button>
+          <button class="btn btn-primary" onclick="submitAudit()" style="min-width:220px;justify-content:center;">
+            💾 Kirim ke Google Sheets & Simpan
+          </button>
         </div>
       </div>
 
-      <div style="display:flex;gap:12px;justify-content:flex-end;padding-bottom:32px;">
-        <button class="btn btn-outline" onclick="resetForm()">🔄 Reset Form</button>
-        <button class="btn btn-primary" onclick="submitAudit()">💾 Simpan Data Audit</button>
-      </div>
-    </div>
+    </div><!-- /page-form -->
 
     <!-- ===== PAGE: REKAP ===== -->
     <div class="page" id="page-rekap">
@@ -751,22 +864,23 @@
           <table class="rekap-table" id="rekap-table">
             <thead>
               <tr>
-                <th>No</th>
+                <th>NO</th>
                 <th>Tanggal</th>
-                <th>Auditor</th>
-                <th>Nakes Diaudit</th>
-                <th>Area</th>
-                <th>Tindakan</th>
-                <th>Shift</th>
+                <th>UNIT</th>
+                <th>AREA</th>
+                <th>JENIS TINDAKAN</th>
+                <th>PROFESI</th>
                 <th>APD Digunakan</th>
-                <th>Status</th>
-                <th>Skor</th>
-                <th>Keterangan</th>
+                <th>STATUS</th>
+                <th>WAKTU</th>
+                <th>KET</th>
+                <th>Nama Nakes</th>
+                <th>Auditor</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="rekap-tbody">
-              <tr><td colspan="12" style="text-align:center;padding:48px;color:var(--text3);">Belum ada data audit</td></tr>
+              <tr><td colspan="13" style="text-align:center;padding:48px;color:var(--text3);">Belum ada data audit</td></tr>
             </tbody>
           </table>
         </div>
@@ -845,7 +959,7 @@
             <label>Apps Script Web App URL</label>
             <div class="input-group">
               <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." 
-                value="https://script.google.com/macros/s/AKfycbwwwhWIKRVt1ckTMDMPD6jiHR8G4PWp8hpJCu_1dam1-2g0ekbYnPtz4R9jOcVf9SXK1w/exec">
+                value="https://script.google.com/macros/s/AKfycbxiwedCbei76tcTBLV5tKVnmyOKQhzP6OHG1RGLUDEIosFprec93UZSIvf_vosliZUfcg/exec">
               <button class="btn btn-primary" onclick="saveSheetConfig()">Simpan</button>
               <button class="btn btn-outline" onclick="testSheetConnection()">Test</button>
             </div>
@@ -1008,38 +1122,62 @@ const DEFAULT_MASTER = [
   {id:26,area:'Perawatan ISO',tindakan:'Pemasangan infus (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
   {id:27,area:'Perawatan ISO',tindakan:'Pemasangan kateter urine (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
   {id:28,area:'Perawatan ISO',tindakan:'Pemasangan NGT (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:29,area:'Perawatan ISO',tindakan:'Suction (ISO)',st_periksa:1,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:30,area:'Perawatan ISO',tindakan:'Rawat luka besar (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:1,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:31,area:'Perawatan ISO',tindakan:'Intubasi (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:1,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:32,area:'Perawatan ISO',tindakan:'Nebulizer (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:33,area:'Perawatan ISO',tindakan:'Operasi (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:1,faceshield:0,gaun:1,celemek:0,apron:0,topi:1,boots:1,sepatu_kerja:0},
-  {id:34,area:'CSSD',tindakan:'Serah terima alat kotor',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:35,area:'CSSD',tindakan:'Perendaman alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:36,area:'CSSD',tindakan:'Pencucian alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:1,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:37,area:'CSSD',tindakan:'Pengeringan alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:38,area:'CSSD',tindakan:'Pengepakan/packing alat',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:39,area:'CSSD',tindakan:'Sterilisasi alat',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:40,area:'CSSD',tindakan:'Penyimpanan alat steril',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:41,area:'CSSD',tindakan:'Distribusi alat steril',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:42,area:'GIZI',tindakan:'Serah terima bahan makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:43,area:'GIZI',tindakan:'Pencucian bahan makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:44,area:'GIZI',tindakan:'Memotong bahan makanan',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:45,area:'GIZI',tindakan:'Memasak',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:46,area:'GIZI',tindakan:'Penyajian makanan',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:47,area:'GIZI',tindakan:'Distribusi makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:48,area:'GIZI',tindakan:'Mencuci alat kotor',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:1,sepatu_kerja:0},
-  {id:49,area:'LAUNDRY',tindakan:'Pengangkutan linen kotor/infeksius dari ruangan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:50,area:'LAUNDRY',tindakan:'Serah terima linen kotor/infeksius di laundry',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:51,area:'LAUNDRY',tindakan:'Perendaman/pencucian',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:52,area:'LAUNDRY',tindakan:'Pengeringan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
-  {id:53,area:'LAUNDRY',tindakan:'Penyetrikaan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:54,area:'LAUNDRY',tindakan:'Pelipatan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:55,area:'LAUNDRY',tindakan:'Penyimpanan linen bersih',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
-  {id:56,area:'LAUNDRY',tindakan:'Distribusi linen bersih',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
-  {id:57,area:'LAUNDRY',tindakan:'Menghitung linen kotor non infeksius',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:0,boots:0,sepatu_kerja:1},
+  {id:29,area:'Perawatan ISO',tindakan:'Suction (ISO)',st_periksa:1,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:0,sepatu_kerja:1},
+  {id:30,area:'Perawatan ISO',tindakan:'Rawat luka kecil post op (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:31,area:'Perawatan ISO',tindakan:'Rawat luka besar (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:1,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:32,area:'Perawatan ISO',tindakan:'Pemasangan CVC (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:1,faceshield:0,gaun:1,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:33,area:'Perawatan ISO',tindakan:'Injeksi IV langsung (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:34,area:'Perawatan ISO',tindakan:'Injeksi IM (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:35,area:'Perawatan ISO',tindakan:'Injeksi IV via IV cath (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:36,area:'Perawatan ISO',tindakan:'Memandikan pasien (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:37,area:'Perawatan ISO',tindakan:'Vital sign (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:38,area:'Perawatan ISO',tindakan:'Memberikan diet pasien (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:39,area:'Perawatan ISO',tindakan:'Intubasi (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:1,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:40,area:'Perawatan ISO',tindakan:'Nebulizer (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:41,area:'Perawatan ISO',tindakan:'Jahit luka (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:42,area:'Perawatan ISO',tindakan:'Aff heacting (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:43,area:'Perawatan ISO',tindakan:'Aff infus (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:44,area:'Perawatan ISO',tindakan:'Aff kateter urine (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:45,area:'Perawatan ISO',tindakan:'Aff NGT (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:46,area:'Perawatan ISO',tindakan:'Penggantian dressing (ISO)',st_periksa:0,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:47,area:'Perawatan ISO',tindakan:'EKG (ISO)',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:48,area:'Perawatan ISO',tindakan:'Perawatan trakeostomi (ISO)',st_periksa:1,st_bedah:0,st_rt:1,masker_bedah:0,n95:1,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:49,area:'Perawatan ISO',tindakan:'Pertolongan/Tindakan persalinan (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:1,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:50,area:'Perawatan ISO',tindakan:'Operasi (ISO)',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:0,n95:1,goggle:1,faceshield:0,gaun:1,celemek:0,apron:0,topi:1,boots:1,sepatu_kerja:0},
+  {id:51,area:'CSSD',tindakan:'Serah terima alat kotor',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:52,area:'CSSD',tindakan:'Perendaman alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:53,area:'CSSD',tindakan:'Pencucian alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:1,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:54,area:'CSSD',tindakan:'Pengeringan alat',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:55,area:'CSSD',tindakan:'Pengepakan/packing alat',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:56,area:'CSSD',tindakan:'Sterilasi alat',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:57,area:'CSSD',tindakan:'Penyimpanan alat steril',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:58,area:'CSSD',tindakan:'Distribusi alat steril',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:59,area:'GIZI',tindakan:'Serah terima bahan makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:60,area:'GIZI',tindakan:'Pencucian bahan makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:61,area:'GIZI',tindakan:'Memotong bahan makanan',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:62,area:'GIZI',tindakan:'Penyimpanan bahan ke gudang',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:63,area:'GIZI',tindakan:'Memasak',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:64,area:'GIZI',tindakan:'Penyajian makanan',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:65,area:'GIZI',tindakan:'Distribusi makanan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:66,area:'GIZI',tindakan:'Mencuci alat kotor',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:1,apron:0,topi:1,boots:1,sepatu_kerja:0},
+  {id:67,area:'LAUNDRY',tindakan:'Pengangkutan linen kotor/infeksius dari ruangan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:68,area:'LAUNDRY',tindakan:'Serah terima linen kotor/infeksius di laundry',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:69,area:'LAUNDRY',tindakan:'Perendaman/pencucian',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:70,area:'LAUNDRY',tindakan:'Pengeringan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:1,boots:1,sepatu_kerja:0},
+  {id:71,area:'LAUNDRY',tindakan:'Penyetrikaan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:72,area:'LAUNDRY',tindakan:'Pelipatan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:73,area:'LAUNDRY',tindakan:'Penyimpanan linen bersih',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:1,boots:0,sepatu_kerja:1},
+  {id:74,area:'LAUNDRY',tindakan:'Distribusi linen bersih',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:0,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:75,area:'LAUNDRY',tindakan:'Serah terima linen kotor diruangan',st_periksa:0,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:0,topi:0,boots:0,sepatu_kerja:1},
+  {id:76,area:'LAUNDRY',tindakan:'Menghitung linen kotor non infeksius di ruangan',st_periksa:1,st_bedah:0,st_rt:0,masker_bedah:1,n95:0,goggle:0,faceshield:0,gaun:0,celemek:0,apron:1,topi:0,boots:0,sepatu_kerja:1},
 ];
 
 // ===== STATE =====
+const MASTER_VERSION = 'v3-sheet-sync-76'; // bump ini setiap kali DEFAULT_MASTER diupdate
+if (localStorage.getItem('apd_master_version') !== MASTER_VERSION) {
+  localStorage.removeItem('apd_master'); // hapus master lama dari cache
+  localStorage.setItem('apd_master_version', MASTER_VERSION);
+}
 let masterData = JSON.parse(localStorage.getItem('apd_master') || 'null') || DEFAULT_MASTER;
 let auditData = JSON.parse(localStorage.getItem('apd_audits') || '[]');
 let editingMasterId = null;
@@ -1225,166 +1363,395 @@ function statusClass(s) {
   return 'status-partial';
 }
 
+// ===== APD ICONS & LABELS =====
+const APD_UI = [
+  { key: 'st_periksa',   label: 'ST Pemeriksaan',   icon: '🧤' },
+  { key: 'st_bedah',     label: 'ST Bedah/Steril',   icon: '🫳' },
+  { key: 'st_rt',        label: 'ST Rumah Tangga',   icon: '🪣' },
+  { key: 'masker_bedah', label: 'Masker Bedah',       icon: '😷' },
+  { key: 'n95',          label: 'Masker N95',         icon: '🔵' },
+  { key: 'goggle',       label: 'Goggle',             icon: '🥽' },
+  { key: 'faceshield',   label: 'Faceshield',         icon: '🛡️' },
+  { key: 'gaun',         label: 'Gaun Isolasi',       icon: '🥼' },
+  { key: 'celemek',      label: 'Celemek',            icon: '🍽️' },
+  { key: 'apron',        label: 'Apron',              icon: '🦺' },
+  { key: 'topi',         label: 'Topi/Penutup',       icon: '👒' },
+  { key: 'boots',        label: 'Sepatu Boots',       icon: '🥾' },
+  { key: 'sepatu_kerja', label: 'Sepatu Kerja',       icon: '👟' },
+];
+
+// ===== STATE: current audit session =====
+let currentTindakanId = null;   // id item master yang sedang diaudit
+let apdStates = {};             // { key: 'Y'|'N'|'NA' }
+let savedTindakanRows = [];     // array of completed rows in this session
+
 // ===== FORM AUDIT =====
 function filterFormByArea() {
   const area = document.getElementById('f-area').value;
-  const tbody = document.getElementById('audit-tbody');
-  if(!area) {
-    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:40px;color:var(--text3);">Pilih area terlebih dahulu</td></tr>';
-    return;
-  }
-  const items = masterData.filter(m => m.area === area);
-  if(!items.length) {
-    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:40px;color:var(--text3);">Tidak ada tindakan untuk area ini</td></tr>';
+  const stepTindakan = document.getElementById('step-tindakan');
+  const apdWrap = document.getElementById('apd-checklist-wrap');
+
+  if (!area) {
+    stepTindakan.style.display = 'none';
+    apdWrap.style.display = 'none';
     return;
   }
 
-  tbody.innerHTML = items.map((item, idx) => {
-    const apdCells = APD_COLS.map(col => {
-      const req = item[col.key];
-      return `
-        <td>
-          <div class="apd-req ${req?'req':''}">${req?'★':''}</div>
-          <div class="compliance-check">
-            <div class="check-group">
-              <input type="radio" class="radio-btn yes" name="apd_${item.id}_${col.key}" id="y_${item.id}_${col.key}" value="Y" onchange="calcRowStatus(${item.id})">
-              <label class="radio-label" for="y_${item.id}_${col.key}" title="Patuh">✓</label>
-              <input type="radio" class="radio-btn no" name="apd_${item.id}_${col.key}" id="n_${item.id}_${col.key}" value="N" onchange="calcRowStatus(${item.id})">
-              <label class="radio-label" for="n_${item.id}_${col.key}" title="Tidak Patuh">✗</label>
-              <input type="radio" class="radio-btn na" name="apd_${item.id}_${col.key}" id="na_${item.id}_${col.key}" value="NA" checked onchange="calcRowStatus(${item.id})">
-              <label class="radio-label" for="na_${item.id}_${col.key}" title="N/A">—</label>
-            </div>
-          </div>
-        </td>`;
-    }).join('');
+  // Reset tindakan state
+  currentTindakanId = null;
+  savedTindakanRows = [];
+  document.getElementById('saved-tindakan-list').innerHTML = '';
+  apdWrap.style.display = 'none';
 
-    return `<tr id="row-${item.id}">
-      <td style="font-weight:700;color:var(--text3);font-size:12px">${idx+1}</td>
-      <td style="font-weight:600">${item.tindakan}</td>
-      ${apdCells}
-      <td id="status-${item.id}"><span class="status-badge" style="background:var(--border);color:var(--text2)">—</span></td>
-      <td><input type="text" placeholder="Catatan..." id="ket-${item.id}" style="width:100%;min-width:110px;font-size:12px;padding:6px 8px;"></td>
-    </tr>`;
+  // Show tindakan step
+  stepTindakan.style.display = 'block';
+  document.getElementById('tindakan-search').value = '';
+  renderTindakanList(area);
+
+  // Scroll to step
+  setTimeout(() => stepTindakan.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+function renderTindakanList(area) {
+  const searchVal = (document.getElementById('tindakan-search')?.value || '').toLowerCase();
+  const items = masterData.filter(m =>
+    m.area === (area || document.getElementById('f-area').value) &&
+    (!searchVal || m.tindakan.toLowerCase().includes(searchVal))
+  );
+
+  const savedIds = savedTindakanRows.map(r => r._masterId);
+  document.getElementById('tindakan-count').textContent = `${items.length} tindakan`;
+  document.getElementById('tindakan-list').innerHTML = items.length
+    ? items.map((item, i) => {
+        const done = savedIds.includes(item.id);
+        return `
+          <button class="tindakan-pill ${done ? 'selected' : ''}" onclick="selectTindakan(${item.id})" id="pill-${item.id}">
+            <span class="pill-num">${i+1}</span>
+            <span style="flex:1">${item.tindakan}</span>
+            ${done ? '<span style="font-size:16px">✅</span>' : ''}
+          </button>`;
+      }).join('')
+    : '<div style="color:var(--text3);font-size:13px;padding:16px;">Tidak ada tindakan ditemukan</div>';
+}
+
+function filterTindakan() {
+  renderTindakanList();
+}
+
+function selectTindakan(id) {
+  currentTindakanId = id;
+  const item = masterData.find(m => m.id === id);
+  if (!item) return;
+
+  // Init APD states: default NA, jika sudah pernah diisi ambil dari savedRows
+  const existing = savedTindakanRows.find(r => r._masterId === id);
+  apdStates = {};
+  APD_UI.forEach(a => {
+    apdStates[a.key] = existing ? (existing.apd[a.key] || 'NA') : 'NA';
+  });
+  document.getElementById('f-ket-tindakan').value = existing?.ket || '';
+
+  // Label
+  document.getElementById('apd-tindakan-label').textContent = `${item.area} — ${item.tindakan}`;
+
+  // Render grid
+  renderAPDGrid(item);
+
+  // Show section
+  const wrap = document.getElementById('apd-checklist-wrap');
+  wrap.style.display = 'block';
+  setTimeout(() => wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+
+  updateAPDStatusBadge(item);
+}
+
+function renderAPDGrid(item) {
+  document.getElementById('apd-grid').innerHTML = APD_UI.map(apd => {
+    const state = apdStates[apd.key] || 'NA';
+    const isWajib = item[apd.key] === 1;
+    const statusIcon = state === 'Y' ? '✓' : state === 'N' ? '✗' : '—';
+    return `
+      <div class="apd-card state-${state}" id="apdcard-${apd.key}" onclick="cycleAPD('${apd.key}', ${item.id})">
+        ${isWajib ? '<span class="apd-wajib">★ Wajib</span>' : ''}
+        <div class="apd-icon">${apd.icon}</div>
+        <div class="apd-name">${apd.label}</div>
+        <div class="apd-status-indicator">${statusIcon}</div>
+      </div>`;
   }).join('');
 }
 
-function calcRowStatus(id) {
-  const item = masterData.find(m => m.id === id);
-  if(!item) return;
-  let wajibOK = 0, wajibTotal = 0, nonWajibNot = 0;
+function cycleAPD(key, itemId) {
+  // Cycle: NA → Y → N → NA
+  const cycle = { 'NA': 'Y', 'Y': 'N', 'N': 'NA' };
+  apdStates[key] = cycle[apdStates[key] || 'NA'];
 
-  APD_COLS.forEach(col => {
-    const val = document.querySelector(`input[name="apd_${id}_${col.key}"]:checked`)?.value;
-    if(item[col.key]) {
+  const item = masterData.find(m => m.id === itemId);
+  const card = document.getElementById('apdcard-' + key);
+  const state = apdStates[key];
+  const statusIcon = state === 'Y' ? '✓' : state === 'N' ? '✗' : '—';
+
+  // Update card class
+  card.className = `apd-card state-${state}`;
+
+  // Update indicator
+  card.querySelector('.apd-status-indicator').textContent = statusIcon;
+
+  // Re-check wajib badge (preserve)
+  const isWajib = item?.[key] === 1;
+  const existingWajib = card.querySelector('.apd-wajib');
+  if (!existingWajib && isWajib) {
+    const wajibEl = document.createElement('span');
+    wajibEl.className = 'apd-wajib';
+    wajibEl.textContent = '★ Wajib';
+    card.prepend(wajibEl);
+  }
+
+  updateAPDStatusBadge(item);
+}
+
+function updateAPDStatusBadge(item) {
+  if (!item) return;
+  let wajibOK = 0, wajibTotal = 0;
+  APD_UI.forEach(a => {
+    if (item[a.key]) {
       wajibTotal++;
-      if(val === 'Y') wajibOK++;
+      if (apdStates[a.key] === 'Y') wajibOK++;
     }
   });
-
   let status, cls;
-  if(wajibTotal === 0) { status = 'N/A'; cls = ''; }
-  else if(wajibOK === wajibTotal) { status = 'Patuh'; cls = 'status-patuh'; }
-  else if(wajibOK === 0) { status = 'Tidak Patuh'; cls = 'status-tidak'; }
-  else { status = 'Patuh Sebagian'; cls = 'status-partial'; }
+  if (wajibTotal === 0) { status = 'N/A'; cls = ''; }
+  else if (wajibOK === wajibTotal) { status = '✅ Patuh'; cls = 'status-patuh'; }
+  else if (wajibOK === 0) { status = '❌ Tidak Patuh'; cls = 'status-tidak'; }
+  else { status = `⚠️ Patuh Sebagian (${wajibOK}/${wajibTotal})`; cls = 'status-partial'; }
 
-  document.getElementById(`status-${id}`).innerHTML = `<span class="status-badge ${cls}">${status}</span>`;
+  document.getElementById('apd-status-badge-wrap').innerHTML =
+    `<span class="status-badge ${cls}" style="font-size:14px;padding:6px 16px;">${status}</span>`;
+}
+
+function saveTindakanAudit() {
+  const item = masterData.find(m => m.id === currentTindakanId);
+  if (!item) { toast('Pilih tindakan terlebih dahulu', 'error'); return; }
+
+  let wajibOK = 0, wajibTotal = 0;
+  APD_UI.forEach(a => {
+    if (item[a.key]) { wajibTotal++; if (apdStates[a.key] === 'Y') wajibOK++; }
+  });
+
+  let status;
+  if (wajibTotal === 0) status = 'N/A';
+  else if (wajibOK === wajibTotal) status = 'Patuh';
+  else if (wajibOK === 0) status = 'Tidak Patuh';
+  else status = 'Patuh Sebagian';
+
+  // NO = total existing audit data + posisi sesi saat ini
+  const noBase = auditData.length + 1;
+  const existingIdx = savedTindakanRows.findIndex(r => r._masterId === item.id);
+  const noRow = existingIdx >= 0 ? savedTindakanRows[existingIdx].no : noBase + savedTindakanRows.filter(r => r._masterId !== item.id).length;
+
+  const row = {
+    _masterId: item.id,
+    no: noRow,
+    tanggal: document.getElementById('f-tanggal').value,
+    unit: document.getElementById('f-unit').value,
+    area: item.area,
+    tindakan: item.tindakan,
+    profesi: document.getElementById('f-profesi').value,
+    waktu: document.getElementById('f-waktu').value,
+    nakes: document.getElementById('f-nakes').value,
+    auditor: document.getElementById('f-auditor').value,
+    apd: { ...apdStates },
+    status,
+    skor: wajibTotal ? Math.round(wajibOK / wajibTotal * 100) : null,
+    ket: document.getElementById('f-ket-tindakan').value || document.getElementById('f-ket').value,
+    savedAt: new Date().toISOString()
+  };
+
+  if (existingIdx >= 0) savedTindakanRows[existingIdx] = row;
+  else savedTindakanRows.push(row);
+
+  toast(`✅ "${item.tindakan}" tersimpan — ${status}`, 'success');
+  renderSavedTindakanList();
+
+  const pill = document.getElementById('pill-' + item.id);
+  if (pill) {
+    pill.classList.add('selected');
+    const ex = pill.querySelector('.done-icon');
+    if (!ex) { const ic = document.createElement('span'); ic.className='done-icon'; ic.style.fontSize='15px'; ic.textContent='✅'; pill.appendChild(ic); }
+  }
+  backToTindakan();
+}
+
+function backToTindakan() {
+  document.getElementById('apd-checklist-wrap').style.display = 'none';
+  document.getElementById('step-tindakan').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  currentTindakanId = null;
+}
+
+function renderSavedTindakanList() {
+  const container = document.getElementById('saved-tindakan-list');
+  if (!savedTindakanRows.length) { container.innerHTML = ''; return; }
+
+  // Renumber NO sequentially from auditData.length+1
+  savedTindakanRows.forEach((r, i) => { r.no = auditData.length + i + 1; });
+
+  const usedAPDSummary = (row) => {
+    const used = APD_UI.filter(a => row.apd[a.key] === 'Y');
+    const notWajib = APD_UI.filter(a => {
+      const m = masterData.find(x => x.id === row._masterId);
+      return m && m[a.key] && row.apd[a.key] !== 'Y';
+    });
+    return { used, notWajib };
+  };
+
+  container.innerHTML = `
+    <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div class="card-title" style="margin:0;"><span>📄</span> Preview Laporan — ${savedTindakanRows.length} baris</div>
+        <div style="font-size:11px;color:var(--text3);">Sesuai header: NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · APD · STATUS · WAKTU · KET</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:var(--primary);">
+              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">NO</th>
+              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">Tanggal</th>
+              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">UNIT</th>
+              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">AREA</th>
+              <th style="color:white;padding:8px 10px;text-align:left;min-width:150px;">JENIS TINDAKAN</th>
+              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">PROFESI</th>
+              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">APD Digunakan</th>
+              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">STATUS</th>
+              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">WAKTU</th>
+              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">KET</th>
+              <th style="color:white;padding:8px 10px;text-align:center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${savedTindakanRows.map((row, i) => {
+              const { used, notWajib } = usedAPDSummary(row);
+              const apdText = used.map(a => a.icon).join(' ') || '—';
+              const rowBg = i % 2 === 0 ? 'white' : 'var(--surface2)';
+              return `
+                <tr style="background:${rowBg};">
+                  <td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text3);">${row.no}</td>
+                  <td style="padding:8px 10px;white-space:nowrap;">${row.tanggal}</td>
+                  <td style="padding:8px 10px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;" title="${row.unit}">${row.unit||'—'}</td>
+                  <td style="padding:8px 10px;">${areaBadge(row.area)}</td>
+                  <td style="padding:8px 10px;font-weight:600;max-width:180px;">${row.tindakan}</td>
+                  <td style="padding:8px 10px;white-space:nowrap;">${row.profesi||'—'}</td>
+                  <td style="padding:8px 10px;text-align:center;font-size:15px;" title="${used.map(a=>a.label).join(', ')}">${apdText}</td>
+                  <td style="padding:8px 10px;text-align:center;"><span class="status-badge ${statusClass(row.status)}">${row.status}</span></td>
+                  <td style="padding:8px 10px;text-align:center;white-space:nowrap;">${row.waktu||'—'}</td>
+                  <td style="padding:8px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${row.ket||'—'}</td>
+                  <td style="padding:8px 10px;text-align:center;white-space:nowrap;">
+                    <button class="btn btn-outline btn-sm" onclick="selectTindakan(${row._masterId})" title="Edit">✏️</button>
+                    <button class="btn btn-danger btn-sm" onclick="removeSavedTindakan(${i})" title="Hapus">🗑</button>
+                  </td>
+                </tr>
+                ${notWajib.length ? `<tr style="background:rgba(239,68,68,0.04);">
+                  <td></td>
+                  <td colspan="10" style="padding:4px 10px 8px;font-size:11px;color:var(--danger);">
+                    ⚠️ APD wajib tidak digunakan: ${notWajib.map(a=>a.icon+' '+a.label).join(', ')}
+                  </td>
+                </tr>` : ''}`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function removeSavedTindakan(idx) {
+  const row = savedTindakanRows[idx];
+  savedTindakanRows.splice(idx, 1);
+  // Unmark pill
+  if (row) {
+    const pill = document.getElementById('pill-' + row._masterId);
+    if (pill) {
+      pill.classList.remove('selected');
+      const icon = pill.querySelector('.done-icon');
+      if (icon) icon.remove();
+    }
+  }
+  renderSavedTindakanList();
+  toast('Tindakan dihapus dari sesi', 'warn');
 }
 
 function getFormRows() {
-  const area = document.getElementById('f-area').value;
-  const items = masterData.filter(m => m.area === area);
-  return items.map(item => {
-    const apdResult = {};
-    APD_COLS.forEach(col => {
-      apdResult[col.key] = document.querySelector(`input[name="apd_${item.id}_${col.key}"]:checked`)?.value || 'NA';
-    });
-
-    let wajibOK = 0, wajibTotal = 0;
-    APD_COLS.forEach(col => {
-      if(item[col.key]) { wajibTotal++; if(apdResult[col.key]==='Y') wajibOK++; }
-    });
-
-    let status;
-    if(wajibTotal===0) status='N/A';
-    else if(wajibOK===wajibTotal) status='Patuh';
-    else if(wajibOK===0) status='Tidak Patuh';
-    else status='Patuh Sebagian';
-
-    return {
-      id: Date.now() + Math.random(),
-      tanggal: document.getElementById('f-tanggal').value,
-      waktu: document.getElementById('f-waktu').value,
-      auditor: document.getElementById('f-auditor').value,
-      jabatan: document.getElementById('f-jabatan').value,
-      nakes: document.getElementById('f-nakes').value,
-      profesi: document.getElementById('f-profesi').value,
-      area: area,
-      shift: document.getElementById('f-shift').value,
-      tindakan: item.tindakan,
-      apd: apdResult,
-      status,
-      skor: wajibTotal ? Math.round(wajibOK/wajibTotal*100) : null,
-      ket: document.getElementById(`ket-${item.id}`)?.value || document.getElementById('f-ket').value,
-      savedAt: new Date().toISOString()
-    };
+  return savedTindakanRows.map(r => {
+    const { _masterId, ...clean } = r;
+    return clean;
   });
 }
 
 async function submitAudit() {
-  const required = ['f-tanggal','f-waktu','f-auditor','f-nakes','f-area'];
-  for(const id of required) {
-    if(!document.getElementById(id).value.trim()) {
-      toast('Lengkapi semua field wajib (*)','error');
-      document.getElementById(id).focus();
+  const required = [
+    { id: 'f-tanggal', label: 'Tanggal' },
+    { id: 'f-waktu',   label: 'Waktu' },
+    { id: 'f-unit',    label: 'UNIT' },
+    { id: 'f-area',    label: 'AREA' },
+    { id: 'f-profesi', label: 'PROFESI' },
+  ];
+  for (const f of required) {
+    if (!document.getElementById(f.id)?.value?.trim()) {
+      toast(`Lengkapi kolom: ${f.label} (*)`, 'error');
+      document.getElementById(f.id)?.focus();
       return;
     }
   }
+  if (!savedTindakanRows.length) {
+    toast('Belum ada tindakan yang dinilai. Pilih JENIS TINDAKAN dan simpan dulu.', 'error');
+    return;
+  }
 
   const rows = getFormRows();
-  if(!rows.length) { toast('Pilih area terlebih dahulu','error'); return; }
-
-  // Save locally
   auditData.push(...rows);
   localStorage.setItem('apd_audits', JSON.stringify(auditData));
 
-  // Try send to Google Sheets
   const url = localStorage.getItem('apd_sheet_url');
-  if(url) {
+  if (url) {
     try {
       await sendToSheet(rows, url);
-      toast(`${rows.length} tindakan tersimpan ke Google Sheets ✓`,'success');
+      toast(`${rows.length} baris berhasil tersimpan ke Google Sheets ✓`, 'success', 5000);
     } catch(e) {
-      toast('Tersimpan lokal. Gagal kirim ke Sheets: ' + e.message,'warn',5000);
+      toast('Tersimpan lokal. Gagal kirim ke Sheets: ' + e.message, 'warn', 5000);
     }
   } else {
-    toast(`${rows.length} data audit tersimpan lokal`,'success');
+    toast(`${rows.length} baris tersimpan lokal`, 'success');
   }
 
   resetForm();
-  setTimeout(() => showPage('rekap'), 800);
+  setTimeout(() => showPage('rekap'), 1000);
 }
 
 async function sendToSheet(rows, url) {
   const res = await fetch(url, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'addAudit', data: rows })
   });
-  if(!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
 }
 
 function resetForm() {
-  ['f-tanggal','f-waktu','f-auditor','f-jabatan','f-nakes','f-profesi','f-ket'].forEach(id => {
-    document.getElementById(id).value = '';
+  ['f-tanggal','f-waktu','f-unit','f-profesi','f-nakes','f-auditor','f-ket','f-ket-tindakan'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
   document.getElementById('f-area').value = '';
-  document.getElementById('f-shift').value = '';
-  document.getElementById('audit-tbody').innerHTML = '<tr><td colspan="17" style="text-align:center;padding:40px;color:var(--text3);">Pilih area terlebih dahulu</td></tr>';
+  const noEl = document.getElementById('f-no');
+  if (noEl) noEl.value = `#${auditData.length + 1}`;
 
-  // Set default date/time
+  document.getElementById('step-tindakan').style.display = 'none';
+  document.getElementById('apd-checklist-wrap').style.display = 'none';
+  document.getElementById('saved-tindakan-list').innerHTML = '';
+  savedTindakanRows = [];
+  currentTindakanId = null;
+  apdStates = {};
+
   const now = new Date();
   document.getElementById('f-tanggal').value = now.toISOString().split('T')[0];
-  document.getElementById('f-waktu').value = now.toTimeString().slice(0,5);
+  document.getElementById('f-waktu').value = now.toTimeString().slice(0, 5);
 }
 
 // ===== REKAP =====
@@ -1409,27 +1776,28 @@ function renderRekap() {
 
   const tbody = document.getElementById('rekap-tbody');
   if(!data.length) {
-    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:48px;color:var(--text3);">Tidak ada data yang sesuai filter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px;color:var(--text3);">Tidak ada data yang sesuai filter</td></tr>';
     document.getElementById('rekap-summary').innerHTML = '';
     return;
   }
 
   tbody.innerHTML = data.map((a, i) => {
-    const apdList = APD_COLS.filter(c => a.apd && a.apd[c.key]==='Y').map(c=>c.label).join(', ') || '—';
+    const apdList = APD_UI.filter(c => a.apd && a.apd[c.key]==='Y').map(c=>`${c.icon} ${c.label}`).join(', ') || '—';
     return `
       <tr>
-        <td style="font-weight:700;color:var(--text3)">${i+1}</td>
-        <td style="white-space:nowrap">${a.tanggal||''} ${a.waktu||''}</td>
-        <td>${a.auditor||'—'}</td>
-        <td>${a.nakes||'—'}</td>
+        <td style="font-weight:700;color:var(--text3);text-align:center;">${a.no || i+1}</td>
+        <td style="white-space:nowrap;">${a.tanggal||''}</td>
+        <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${a.unit||''}">${a.unit||'—'}</td>
         <td>${areaBadge(a.area)}</td>
-        <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.tindakan}">${a.tindakan}</td>
-        <td>${a.shift||'—'}</td>
-        <td style="font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${apdList}">${apdList}</td>
+        <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;" title="${a.tindakan}">${a.tindakan}</td>
+        <td style="white-space:nowrap;">${a.profesi||'—'}</td>
+        <td style="font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${apdList}">${apdList}</td>
         <td><span class="status-badge ${statusClass(a.status)}">${a.status}</span></td>
-        <td style="font-weight:700">${a.skor != null ? a.skor+'%' : '—'}</td>
-        <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.ket||'—'}</td>
-        <td>
+        <td style="white-space:nowrap;">${a.waktu||'—'}</td>
+        <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${a.ket||'—'}</td>
+        <td style="white-space:nowrap;">${a.nakes||'—'}</td>
+        <td style="white-space:nowrap;">${a.auditor||'—'}</td>
+        <td style="white-space:nowrap;">
           <button class="btn btn-outline btn-sm" onclick="viewAuditDetail(${auditData.indexOf(a)})">👁</button>
           <button class="btn btn-danger btn-sm" onclick="deleteAudit(${auditData.indexOf(a)})">🗑</button>
         </td>
@@ -1453,10 +1821,10 @@ function renderRekap() {
 function viewAuditDetail(idx) {
   const a = auditData[idx];
   if(!a) return;
-  const apdRows = APD_COLS.map(col => {
+  const apdRows = APD_UI.map(col => {
     const val = a.apd?.[col.key];
     const icon = val==='Y'?'✅':val==='N'?'❌':'—';
-    return `<tr><td style="padding:6px 12px">${col.label}</td><td style="text-align:center">${icon}</td></tr>`;
+    return `<tr><td style="padding:6px 12px">${col.icon} ${col.label}</td><td style="text-align:center">${icon}</td></tr>`;
   }).join('');
 
   document.getElementById('modal-detail-content').innerHTML = `
@@ -1667,17 +2035,34 @@ function downloadExcel() {
 
   const rsName = localStorage.getItem('apd_rs_name') || 'RS Surya';
   const rsUnit = localStorage.getItem('apd_rs_unit') || 'IPCN / PPI';
-  const headers = ['No','Tanggal','Waktu','Auditor','Jabatan Auditor','Nama Nakes','Profesi','Area','Shift','Tindakan',
-    ...APD_COLS.map(c=>c.label),'Status','Skor (%)','Keterangan'];
+  // Headers sesuai sheet laporan persis
+  const headers = [
+    'NO', 'Tanggal', 'UNIT', 'AREA', 'JENIS TINDAKAN', 'PROFESI',
+    'ST Pemeriksaan', 'ST Bedah/Steril', 'ST Rumah Tangga',
+    'Masker Bedah', 'Masker N95/Respiratorik', 'Goggle', 'Faceshield',
+    'Gaun', 'Celemek', 'Apron', 'Topi', 'Sepatu Boots', 'Sepatu Kerja',
+    'STATUS', 'WAKTU', 'KET',
+    // kolom internal
+    'Nama Nakes', 'Auditor', 'Skor (%)'
+  ];
 
-  const rows = data.map((a,i) => [
-    i+1, a.tanggal, a.waktu, a.auditor, a.jabatan||'', a.nakes, a.profesi||'',
-    a.area, a.shift||'', a.tindakan,
-    ...APD_COLS.map(c => {
+  const rows = data.map((a, i) => [
+    a.no || i+1,
+    a.tanggal || '',
+    a.unit || '',
+    a.area || '',
+    a.tindakan || '',
+    a.profesi || '',
+    ...APD_UI.map(c => {
       const v = a.apd?.[c.key];
-      return v==='Y'?'Ya':v==='N'?'Tidak':'N/A';
+      return v==='Y'?'V':v==='N'?'':'-';
     }),
-    a.status, a.skor!=null?a.skor:'', a.ket||''
+    a.status || '',
+    a.waktu || '',
+    a.ket || '',
+    a.nakes || '',
+    a.auditor || '',
+    a.skor != null ? a.skor : ''
   ]);
 
   // Build CSV (Excel-compatible with UTF-8 BOM)
@@ -1737,7 +2122,7 @@ if('serviceWorker' in navigator) {
 }
 
 // ===== INIT =====
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwwwhWIKRVt1ckTMDMPD6jiHR8G4PWp8hpJCu_1dam1-2g0ekbYnPtz4R9jOcVf9SXK1w/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxiwedCbei76tcTBLV5tKVnmyOKQhzP6OHG1RGLUDEIosFprec93UZSIvf_vosliZUfcg/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Auto-init defaults
