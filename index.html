@@ -270,11 +270,11 @@
     font-size: 11px; font-weight: 700;
     white-space: nowrap;
   }
-  .area-noniso { background: rgba(16,185,129,0.15); color: #065f46; }
-  .area-iso { background: rgba(239,68,68,0.12); color: #991b1b; }
-  .area-cssd { background: rgba(245,158,11,0.15); color: #92400e; }
-  .area-gizi { background: rgba(139,92,246,0.15); color: #4c1d95; }
-  .area-laundry { background: rgba(59,130,246,0.15); color: #1e3a8a; }
+  .area-noniso { background: #10b981; color: #ffffff; }
+  .area-iso    { background: #ef4444; color: #ffffff; }
+  .area-cssd   { background: #f59e0b; color: #ffffff; }
+  .area-gizi   { background: #8b5cf6; color: #ffffff; }
+  .area-laundry{ background: #3b82f6; color: #ffffff; }
 
   .compliance-check {
     display: flex; justify-content: center;
@@ -1525,12 +1525,13 @@ function filterTindakan() {
 }
 
 function selectTindakan(id) {
+  // Gunakan == (bukan ===) agar string '123' cocok dengan number 123
   currentTindakanId = id;
-  const item = masterData.find(m => m.id === id);
+  const item = masterData.find(m => String(m.id) === String(id));
   if (!item) return;
 
   // Init APD states: default NA, jika sudah pernah diisi ambil dari savedRows
-  const existing = savedTindakanRows.find(r => r._masterId === id);
+  const existing = savedTindakanRows.find(r => String(r._masterId) === String(id));
   apdStates = {};
   APD_UI.forEach(a => {
     apdStates[a.key] = existing ? (existing.apd[a.key] || 'NA') : 'NA';
@@ -2080,24 +2081,28 @@ function renderMaster() {
         <div style="overflow-x:auto;">
           <div style="min-width:600px;">
             <!-- Legend APD -->
-            <div style="display:grid;grid-template-columns:32px 1fr repeat(13,1fr);gap:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 16px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">
+            <div style="display:grid;grid-template-columns:32px minmax(120px,1fr) repeat(13,40px) 80px;gap:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:4px 16px;align-items:end;">
               <div></div>
-              <div>Jenis Tindakan</div>
-              ${APD_UI.map(a => `<div style="text-align:center;padding:4px 2px;font-size:9px;line-height:1.3;">${a.icon}<br><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:52px;margin:0 auto;" title="${a.label}">${a.label}</span></div>`).join('')}
-              <div style="text-align:center;font-size:9px;">Aksi</div>
+              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;padding-bottom:6px;">Jenis Tindakan</div>
+              ${APD_UI.map(a => `
+                <div style="text-align:center;padding:4px 0 6px;">
+                  <div style="font-size:14px;line-height:1;">${a.icon}</div>
+                  <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin:4px auto 0;height:60px;line-height:1.2;">${a.label}</div>
+                </div>`).join('')}
+              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;padding-bottom:6px;">Aksi</div>
             </div>
 
             <!-- Rows -->
             ${items.map((item, i) => `
-              <div style="display:grid;grid-template-columns:32px 1fr repeat(13,1fr) 80px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:${i%2===0?'white':'var(--surface2)'};align-items:center;" id="mrow-${item.id}">
+              <div style="display:grid;grid-template-columns:32px minmax(120px,1fr) repeat(13,40px) 80px;gap:0;padding:8px 16px;border-bottom:1px solid var(--border);background:${i%2===0?'white':'var(--surface2)'};align-items:center;" id="mrow-${item.id}">
                 <div style="font-size:11px;font-weight:700;color:var(--text3);">${i+1}</div>
-                <div style="font-weight:600;font-size:13px;padding-right:8px;">${item.tindakan}</div>
+                <div style="font-weight:600;font-size:13px;padding-right:8px;word-break:break-word;">${item.tindakan}</div>
                 ${APD_UI.map(apd => {
-                  const wajib = item[apd.key];
+                  const wajib = item[apd.key] == 1 || item[apd.key] === true || item[apd.key] === 'V' || item[apd.key] === 'Y';
                   return `<div style="text-align:center;">
                     ${wajib
-                      ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:white;font-size:12px;font-weight:800;" title="${apd.label} — Wajib">✓</span>`
-                      : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--border);" title="${apd.label} — Tidak Wajib"></span>`
+                      ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--primary);color:white;font-size:13px;font-weight:800;" title="${apd.label} — Wajib">✓</span>`
+                      : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--border);" title="${apd.label} — Tidak Wajib"></span>`
                     }
                   </div>`;
                 }).join('')}
