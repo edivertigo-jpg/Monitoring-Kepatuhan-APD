@@ -2,7 +2,7 @@
 // APD Audit Service Worker — RSU Surya Husadha Nusa Dua
 // BUMP VERSION INI SETIAP UPDATE FILE APAPUN
 // ============================================================
-const CACHE_VERSION = 'apd-surya-v10'; // <-- update tiap deploy
+const CACHE_VERSION = 'apd-surya-v11'; // <-- update tiap deploy
 const CACHE_NAME = CACHE_VERSION;
 
 // File yang di-cache untuk offline
