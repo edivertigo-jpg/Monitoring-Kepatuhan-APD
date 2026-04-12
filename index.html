@@ -456,6 +456,10 @@
     animation: slideUp .4s cubic-bezier(.4,0,.2,1);
     display: none;
   }
+  @keyframes slideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
   @keyframes slideUp {
     from { transform: translateY(100%); }
     to { transform: none; }
@@ -2335,7 +2339,56 @@ function dismissInstall() {
 
 // Register Service Worker
 if('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('./sw.js').then(reg => {
+    console.log('[App] SW registered:', reg.scope);
+
+    // Cek update setiap kali halaman dibuka
+    reg.update();
+
+    // Jika ada SW baru yang menunggu, paksa aktifkan
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+
+    reg.addEventListener('updatefound', () => {
+      const newSW = reg.installing;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('[App] New SW installed, sending SKIP_WAITING');
+          newSW.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(err => console.warn('[App] SW error:', err));
+
+  // Terima pesan dari SW → reload halaman
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SW_UPDATED') {
+      console.log('[App] SW_UPDATED received, reloading...', event.data.version);
+      // Tampilkan notif dulu sebelum reload
+      const banner = document.createElement('div');
+      banner.style.cssText = `
+        position:fixed;top:0;left:0;right:0;z-index:9999;
+        background:var(--primary);color:white;
+        padding:12px 20px;text-align:center;
+        font-size:14px;font-weight:600;
+        animation:slideDown .3s ease;
+      `;
+      banner.innerHTML = '🔄 Versi baru tersedia — memuat ulang...';
+      document.body.prepend(banner);
+      setTimeout(() => window.location.reload(true), 1500);
+    }
+  });
+
+  // Jika SW controller berubah (SW baru aktif) → reload
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[App] Controller changed, reloading...');
+      window.location.reload(true);
+    }
+  });
 }
 
 // ===== INIT =====
