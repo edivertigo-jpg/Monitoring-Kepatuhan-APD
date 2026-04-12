@@ -1973,10 +1973,15 @@ async function syncMasterFromSheet() {
     const json = await res.json();
 
     if (json.ok && json.data && json.data.length) {
-      masterData = json.data.map((r, i) => ({
-        ...r,
-        id: r.id || (i + 1)
-      }));
+      masterData = json.data.map((r, i) => {
+        const normalized = { ...r, id: r.id || (i + 1) };
+        // Normalisasi semua nilai APD ke integer 1/0
+        APD_UI.forEach(a => {
+          const v = normalized[a.key];
+          normalized[a.key] = (v === 1 || v === '1' || v === true || v === 'V' || v === 'v' || v === 'Y') ? 1 : 0;
+        });
+        return normalized;
+      });
       localStorage.setItem('apd_master', JSON.stringify(masterData));
       localStorage.setItem('apd_master_version', 'sheet-synced-' + Date.now());
       status.innerHTML = `<span style="color:var(--success)">✅ Sync berhasil — ${masterData.length} tindakan</span>`;
@@ -2080,25 +2085,31 @@ function renderMaster() {
         <!-- APD header legend -->
         <div style="overflow-x:auto;">
           <div style="min-width:600px;">
-            <!-- Legend APD -->
-            <div style="display:grid;grid-template-columns:32px minmax(120px,1fr) repeat(13,40px) 80px;gap:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:4px 16px;align-items:end;">
+            <!-- Legend APD - 2 baris horizontal -->
+            <div style="display:grid;grid-template-columns:32px minmax(140px,1.5fr) repeat(13,40px) 80px;background:var(--surface2);border-bottom:2px solid var(--border);padding:6px 16px;align-items:end;gap:0;">
               <div></div>
-              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;padding-bottom:6px;">Jenis Tindakan</div>
-              ${APD_UI.map(a => `
-                <div style="text-align:center;padding:4px 0 6px;">
-                  <div style="font-size:14px;line-height:1;">${a.icon}</div>
-                  <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;margin:4px auto 0;height:60px;line-height:1.2;">${a.label}</div>
-                </div>`).join('')}
-              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;padding-bottom:6px;">Aksi</div>
+              <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;padding-bottom:4px;">Jenis Tindakan</div>
+              ${APD_UI.map(a => {
+                const words = a.label.split(' ');
+                const mid = Math.ceil(words.length / 2);
+                const line1 = words.slice(0, mid).join(' ');
+                const line2 = words.slice(mid).join(' ');
+                return `<div style="text-align:center;padding:2px 1px 4px;">
+                  <div style="font-size:13px;line-height:1;margin-bottom:3px;">${a.icon}</div>
+                  <div style="font-size:8.5px;font-weight:700;color:var(--text2);text-transform:uppercase;line-height:1.25;letter-spacing:.2px;">${line1}${line2 ? '<br>'+line2 : ''}</div>
+                </div>`;
+              }).join('')}
+              <div style="font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;text-align:center;padding-bottom:4px;">Aksi</div>
             </div>
 
             <!-- Rows -->
             ${items.map((item, i) => `
-              <div style="display:grid;grid-template-columns:32px minmax(120px,1fr) repeat(13,40px) 80px;gap:0;padding:8px 16px;border-bottom:1px solid var(--border);background:${i%2===0?'white':'var(--surface2)'};align-items:center;" id="mrow-${item.id}">
+              <div style="display:grid;grid-template-columns:32px minmax(140px,1.5fr) repeat(13,40px) 80px;gap:0;padding:8px 16px;border-bottom:1px solid var(--border);background:${i%2===0?'white':'var(--surface2)'};align-items:center;" id="mrow-${item.id}">
                 <div style="font-size:11px;font-weight:700;color:var(--text3);">${i+1}</div>
                 <div style="font-weight:600;font-size:13px;padding-right:8px;word-break:break-word;">${item.tindakan}</div>
                 ${APD_UI.map(apd => {
-                  const wajib = item[apd.key] == 1 || item[apd.key] === true || item[apd.key] === 'V' || item[apd.key] === 'Y';
+                  const val = item[apd.key];
+                  const wajib = val === 1 || val === '1' || val === true || val === 'V' || val === 'v' || val === 'Y' || val === 'y';
                   return `<div style="text-align:center;">
                     ${wajib
                       ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--primary);color:white;font-size:13px;font-weight:800;" title="${apd.label} — Wajib">✓</span>`
