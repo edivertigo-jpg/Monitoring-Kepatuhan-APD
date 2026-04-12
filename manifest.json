@@ -1,7 +1,7 @@
 {
-  "name": "APD Audit — RS Surya",
-  "short_name": "APD Audit",
-  "description": "Dashboard audit kepatuhan penggunaan Alat Pelindung Diri RS Surya",
+  "name": "Monitoring APD RSU Surya Husadha",
+  "short_name": "APD Surya",
+  "description": "Monitoring Kepatuhan Penggunaan APD RSU Surya Husadha Nusa Dua",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f4c81",
