@@ -482,6 +482,12 @@
     .overlay.open { display: block; }
   }
 
+  /* ===== MASTER GRID ===== */
+  #master-content .card { transition: box-shadow .2s; }
+  #master-content [style*="grid-template-columns:32px"] { min-width: 860px; }
+  /* Wrap container scrollable */
+  #master-content [style*="overflow-x:auto"] { border-radius: 0 0 var(--radius) var(--radius); }
+
   /* ===== APD GRID CARDS ===== */
   .mini-dot {
     width: 22px; height: 22px; border-radius: 6px;
@@ -696,34 +702,40 @@
         <img src="logo_surya.png" alt="RS Surya" style="height:60px;width:60px;object-fit:contain;border-radius:12px;background:rgba(255,255,255,0.15);padding:6px;flex-shrink:0;">
         <div>
           <h2>Form Audit Kepatuhan APD</h2>
-          <p>RS Surya &nbsp;|&nbsp; Kolom: NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · APD (13 kolom) · STATUS · WAKTU · KET</p>
+          <p>RS Surya &nbsp;|&nbsp; Setiap baris = 1 data laporan: NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · [13 APD] · STATUS · WAKTU · KET</p>
         </div>
       </div>
 
-      <!-- ═══ STEP 1: IDENTITAS (sesuai header sheet) ═══ -->
+      <!-- ═══ STEP 1: SESUAI HEADER SHEET LAPORAN ═══ -->
       <div class="card form-section">
-        <div class="form-section-title">📋 Identitas Laporan <span style="font-size:11px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;">— kolom NO, Tanggal, UNIT, AREA, PROFESI, WAKTU, KET</span></div>
-        <div class="form-grid">
+        <div class="form-section-title">📋 Data Laporan
+          <span style="font-size:11px;font-weight:500;color:var(--text2);text-transform:none;letter-spacing:0;">
+            — NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · STATUS · WAKTU · KET
+          </span>
+        </div>
 
-          <!-- NO (auto dari JS, tampil saja) -->
+        <!-- Baris 1: NO (auto) + Tanggal + WAKTU -->
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:14px;margin-bottom:14px;">
           <div class="form-group">
-            <label>NO (otomatis)</label>
-            <input type="text" id="f-no" placeholder="Auto dari jumlah data" disabled style="background:var(--bg);color:var(--text2);">
+            <label>NO</label>
+            <input type="text" id="f-no" disabled style="background:var(--bg);color:var(--text2);font-weight:700;text-align:center;">
           </div>
-
-          <!-- Tanggal -->
           <div class="form-group">
             <label>Tanggal *</label>
             <input type="date" id="f-tanggal" required>
           </div>
+          <div class="form-group">
+            <label>WAKTU *</label>
+            <input type="time" id="f-waktu" required>
+          </div>
+        </div>
 
-          <!-- UNIT -->
+        <!-- Baris 2: UNIT + AREA -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
           <div class="form-group">
             <label>UNIT / Ruangan *</label>
-            <input type="text" id="f-unit" placeholder="ICU, Poli Bedah, Gizi, Laundry..." required>
+            <input type="text" id="f-unit" placeholder="ICU · Poli Bedah · Gizi · Laundry · dll" required>
           </div>
-
-          <!-- AREA -->
           <div class="form-group">
             <label>AREA *</label>
             <select id="f-area" required onchange="filterFormByArea()">
@@ -735,38 +747,24 @@
               <option>LAUNDRY</option>
             </select>
           </div>
+        </div>
 
-          <!-- PROFESI -->
+        <!-- Baris 3: PROFESI + KET -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <div class="form-group">
             <label>PROFESI *</label>
-            <input type="text" id="f-profesi" placeholder="Perawat / Bidan / Ahli Gizi / Sanitasi / dll" required>
+            <input type="text" id="f-profesi" placeholder="Perawat · Bidan · Ahli Gizi · Sanitasi · dll" required>
           </div>
-
-          <!-- WAKTU -->
           <div class="form-group">
-            <label>WAKTU *</label>
-            <input type="time" id="f-waktu" required>
+            <label>KET</label>
+            <input type="text" id="f-ket" placeholder="Keterangan (opsional)">
           </div>
-
-          <!-- Nama Nakes (internal, tidak di header tapi dipakai rekap) -->
-          <div class="form-group">
-            <label>Nama Nakes (internal)</label>
-            <input type="text" id="f-nakes" placeholder="Nama lengkap yang diaudit">
-          </div>
-
-          <!-- Auditor (internal) -->
-          <div class="form-group">
-            <label>Nama Auditor (internal)</label>
-            <input type="text" id="f-auditor" placeholder="Nama auditor / IPCN">
-          </div>
-
-          <!-- KET -->
-          <div class="form-group full">
-            <label>KET / Keterangan</label>
-            <input type="text" id="f-ket" placeholder="Keterangan tambahan untuk baris ini...">
-          </div>
-
         </div>
+
+        <!-- Hidden fields — tetap ada untuk data internal -->
+        <input type="hidden" id="f-nakes" value="">
+        <input type="hidden" id="f-auditor" value="">
+
       </div>
 
       <!-- ═══ STEP 2: JENIS TINDAKAN ═══ -->
@@ -854,7 +852,7 @@
           <option value="">Semua Status</option>
           <option>Patuh</option>
           <option>Tidak Patuh</option>
-          <option>Patuh Sebagian</option>
+
         </select>
         <input type="text" id="filter-search" oninput="renderRekap()" placeholder="🔍 Cari nama / tindakan..." style="min-width:200px">
       </div>
@@ -891,23 +889,31 @@
 
     <!-- ===== PAGE: MASTER ===== -->
     <div class="page" id="page-master">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+
+      <!-- Toolbar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
         <div>
           <div style="font-size:20px;font-weight:800;">📚 Guideline Kepatuhan APD</div>
-          <div style="font-size:13px;color:var(--text2);margin-top:4px;">Master data standar APD per jenis tindakan</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px;">
+            Sinkron otomatis dengan Google Sheet tab <strong>Master APD</strong>
+            &nbsp;<span id="master-sync-status" style="font-size:11px;"></span>
+          </div>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary" onclick="openAddMaster()">➕ Tambah Data</button>
-          <button class="btn btn-outline btn-sm" onclick="importFromSheet()">📥 Sync dari Sheet</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="syncMasterFromSheet()" id="btn-sync-master">
+            🔄 Sync dari Sheet
+          </button>
+          <button class="btn btn-primary" onclick="openAddMaster()">➕ Tambah Tindakan</button>
         </div>
       </div>
 
-      <div class="master-controls">
-        <div class="search-box">
+      <!-- Filter -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <div class="search-box" style="flex:1;min-width:180px;">
           <span class="icon">🔍</span>
           <input type="text" id="master-search" placeholder="Cari tindakan, area..." oninput="renderMaster()">
         </div>
-        <select id="master-filter-area" onchange="renderMaster()">
+        <select id="master-filter-area" onchange="renderMaster()" style="font-size:13px;padding:8px 12px;">
           <option value="">Semua Area</option>
           <option>Perawatan NON ISO</option>
           <option>Perawatan ISO</option>
@@ -915,37 +921,13 @@
           <option>GIZI</option>
           <option>LAUNDRY</option>
         </select>
+        <span id="master-count" style="font-size:12px;color:var(--text3);white-space:nowrap;"></span>
       </div>
 
-      <div class="card" style="padding:0;overflow:hidden;">
-        <div style="overflow-x:auto;">
-          <table class="apd-table" id="master-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th class="left">Area</th>
-                <th class="left">Jenis Tindakan</th>
-                <th>ST Pemeriksaan</th>
-                <th>ST Bedah</th>
-                <th>ST Rumah Tangga</th>
-                <th>Masker Bedah</th>
-                <th>N95</th>
-                <th>Goggle</th>
-                <th>Faceshield</th>
-                <th>Gaun</th>
-                <th>Celemek</th>
-                <th>Apron</th>
-                <th>Topi</th>
-                <th>Sepatu Boots</th>
-                <th>Sepatu Kerja</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody id="master-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+      <!-- Tabel — card per area, tidak scroll horizontal -->
+      <div id="master-content"></div>
+
+    </div><!-- /page-master -->
 
     <!-- ===== PAGE: CONFIG ===== -->
     <div class="page" id="page-config">
@@ -959,7 +941,7 @@
             <label>Apps Script Web App URL</label>
             <div class="input-group">
               <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." 
-                value="https://script.google.com/macros/s/AKfycbxiwedCbei76tcTBLV5tKVnmyOKQhzP6OHG1RGLUDEIosFprec93UZSIvf_vosliZUfcg/exec">
+                value="https://script.google.com/macros/s/AKfycbxUkEOLq3f4BVZ1dCAqdQbUJ2fCrLwcdCwBNR36OiHzl3HEN1oDa562wcMJYRQ8C3v8hA/exec">
               <button class="btn btn-primary" onclick="saveSheetConfig()">Simpan</button>
               <button class="btn btn-outline" onclick="testSheetConnection()">Test</button>
             </div>
@@ -1203,7 +1185,7 @@ function showPage(page) {
 
   if(page === 'dashboard') renderDashboard();
   if(page === 'rekap') renderRekap();
-  if(page === 'master') renderMaster();
+  if(page === 'master') { renderMaster(); syncMasterFromSheet(); }
   if(page === 'config') renderConfig();
 
   closeSidebar();
@@ -1248,7 +1230,7 @@ function renderDashboard() {
   const total = auditData.length;
   const patuh = auditData.filter(a => a.status === 'Patuh').length;
   const tidak = auditData.filter(a => a.status === 'Tidak Patuh').length;
-  const partial = auditData.filter(a => a.status === 'Patuh Sebagian').length;
+  const partial = 0; // Dihapus — hanya Patuh/Tidak Patuh
   const pct = total ? Math.round(patuh / total * 100) : 0;
 
   document.getElementById('stat-grid').innerHTML = `
@@ -1271,10 +1253,10 @@ function renderDashboard() {
       <div class="stat-sub">${total ? Math.round(tidak/total*100) : 0}% dari total</div>
     </div>
     <div class="stat-card warn">
-      <div class="stat-icon warn">⚠️</div>
-      <div class="stat-num">${partial}</div>
-      <div class="stat-label">Patuh Sebagian</div>
-      <div class="stat-sub">${total ? Math.round(partial/total*100) : 0}% dari total</div>
+      <div class="stat-icon warn">📊</div>
+      <div class="stat-num">${pct}%</div>
+      <div class="stat-label">Tingkat Kepatuhan</div>
+      <div class="stat-sub">${patuh} dari ${total} audit</div>
     </div>
   `;
 
@@ -1299,8 +1281,8 @@ function renderDashboard() {
   document.getElementById('area-chart').innerHTML = areaHTML || '<div class="empty-state"><span class="icon">📊</span><p>Belum ada data</p></div>';
 
   // Donut
-  renderDonut([patuh, tidak, partial], ['Patuh','Tidak Patuh','Patuh Sebagian'],
-    ['var(--success)','var(--danger)','var(--warn)'], total);
+  renderDonut([patuh, tidak], ['Patuh','Tidak Patuh'],
+    ['var(--success)','var(--danger)'], total);
 
   // Recent
   const recent = [...auditData].reverse().slice(0, 5);
@@ -1522,7 +1504,7 @@ function updateAPDStatusBadge(item) {
   if (wajibTotal === 0) { status = 'N/A'; cls = ''; }
   else if (wajibOK === wajibTotal) { status = '✅ Patuh'; cls = 'status-patuh'; }
   else if (wajibOK === 0) { status = '❌ Tidak Patuh'; cls = 'status-tidak'; }
-  else { status = `⚠️ Patuh Sebagian (${wajibOK}/${wajibTotal})`; cls = 'status-partial'; }
+  else { status = '❌ Tidak Patuh'; cls = 'status-tidak'; }
 
   document.getElementById('apd-status-badge-wrap').innerHTML =
     `<span class="status-badge ${cls}" style="font-size:14px;padding:6px 16px;">${status}</span>`;
@@ -1541,7 +1523,7 @@ function saveTindakanAudit() {
   if (wajibTotal === 0) status = 'N/A';
   else if (wajibOK === wajibTotal) status = 'Patuh';
   else if (wajibOK === 0) status = 'Tidak Patuh';
-  else status = 'Patuh Sebagian';
+  else status = 'Tidak Patuh';
 
   // NO = total existing audit data + posisi sesi saat ini
   const noBase = auditData.length + 1;
@@ -1734,7 +1716,7 @@ async function sendToSheet(rows, url) {
 }
 
 function resetForm() {
-  ['f-tanggal','f-waktu','f-unit','f-profesi','f-nakes','f-auditor','f-ket','f-ket-tindakan'].forEach(id => {
+  ['f-tanggal','f-waktu','f-unit','f-profesi','f-ket','f-ket-tindakan'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1813,7 +1795,8 @@ function renderRekap() {
       <div><strong>Total ditampilkan:</strong> ${data.length}</div>
       <div><strong>Patuh:</strong> <span style="color:var(--success);font-weight:700">${patuh} (${pct}%)</span></div>
       <div><strong>Tidak Patuh:</strong> <span style="color:var(--danger);font-weight:700">${data.filter(a=>a.status==='Tidak Patuh').length}</span></div>
-      <div><strong>Patuh Sebagian:</strong> <span style="color:var(--warn);font-weight:700">${data.filter(a=>a.status==='Patuh Sebagian').length}</span></div>
+      <div><strong>Tingkat Kepatuhan:</strong> <span style="color:var(--success);font-weight:700">${total ? Math.round(patuh/total*100) : 0}%</span></div>
+
     </div>
   `;
 }
@@ -1857,40 +1840,162 @@ function deleteAudit(idx) {
   toast('Data dihapus','warn');
 }
 
-// ===== MASTER DATA =====
+// ===== MASTER DATA — sync dengan Google Sheet =====
+
+async function syncMasterFromSheet() {
+  const url = localStorage.getItem('apd_sheet_url');
+  const btn = document.getElementById('btn-sync-master');
+  const status = document.getElementById('master-sync-status');
+
+  if (!url) {
+    toast('URL Apps Script belum dikonfigurasi. Masuk ke menu Konfigurasi.', 'warn');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Sync...';
+  status.innerHTML = '<span style="color:var(--warn)">⏳ Mengambil data dari Sheet...</span>';
+
+  try {
+    const res = await fetch(url + '?action=getMaster');
+    const json = await res.json();
+
+    if (json.ok && json.data && json.data.length) {
+      masterData = json.data.map((r, i) => ({
+        ...r,
+        id: r.id || (i + 1)
+      }));
+      localStorage.setItem('apd_master', JSON.stringify(masterData));
+      localStorage.setItem('apd_master_version', 'sheet-synced-' + Date.now());
+      status.innerHTML = `<span style="color:var(--success)">✅ Sync berhasil — ${masterData.length} tindakan</span>`;
+      toast(`${masterData.length} guideline berhasil disync dari Sheet`, 'success');
+      renderMaster();
+    } else if (json.ok && (!json.data || json.data.length === 0)) {
+      // Sheet Master APD kosong — push DEFAULT_MASTER ke sheet
+      status.innerHTML = '<span style="color:var(--warn)">⬆️ Sheet kosong, upload default ke Sheet...</span>';
+      await pushMasterToSheet();
+      status.innerHTML = `<span style="color:var(--success)">✅ Default master diupload ke Sheet (${masterData.length} tindakan)</span>`;
+      toast('Default guideline diupload ke Sheet Master APD', 'success');
+    } else {
+      throw new Error(json.error || 'Response tidak valid');
+    }
+  } catch(e) {
+    status.innerHTML = `<span style="color:var(--danger)">❌ Gagal: ${e.message}</span>`;
+    toast('Gagal sync dari Sheet: ' + e.message, 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔄 Sync dari Sheet';
+}
+
+async function pushMasterToSheet() {
+  const url = localStorage.getItem('apd_sheet_url');
+  if (!url) return;
+  await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ action: 'syncMaster', data: masterData })
+  });
+}
+
+async function saveMasterToSheet(row, isDelete = false) {
+  const url = localStorage.getItem('apd_sheet_url');
+  if (!url) return; // offline mode, hanya local
+
+  try {
+    if (isDelete) {
+      await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'deleteMaster', id: row.id })
+      });
+    } else {
+      await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action: 'saveMasterRow', data: row })
+      });
+    }
+  } catch(e) {
+    console.warn('Sheet sync error:', e.message);
+  }
+}
+
 function renderMaster() {
   let data = [...masterData];
-  const search = document.getElementById('master-search').value.toLowerCase();
-  const area = document.getElementById('master-filter-area').value;
+  const search = (document.getElementById('master-search')?.value || '').toLowerCase();
+  const area   = document.getElementById('master-filter-area')?.value || '';
 
-  if(area) data = data.filter(m => m.area === area);
-  if(search) data = data.filter(m =>
-    m.tindakan.toLowerCase().includes(search) ||
-    m.area.toLowerCase().includes(search)
+  if (area)   data = data.filter(m => m.area === area);
+  if (search) data = data.filter(m =>
+    m.tindakan.toLowerCase().includes(search) || m.area.toLowerCase().includes(search)
   );
 
-  document.getElementById('master-tbody').innerHTML = data.map((m, i) => {
-    const cells = APD_COLS.map(c =>
-      `<td style="text-align:center">${m[c.key]?'<span style="color:var(--primary);font-weight:700">✓</span>':'<span style="color:var(--border)">·</span>'}</td>`
-    ).join('');
+  document.getElementById('master-count').textContent = `${data.length} tindakan`;
+
+  if (!data.length) {
+    document.getElementById('master-content').innerHTML = `
+      <div class="empty-state">
+        <span class="icon">📭</span>
+        <h3>Tidak ada data</h3>
+        <p>Klik "Sync dari Sheet" atau "Tambah Tindakan"</p>
+      </div>`;
+    return;
+  }
+
+  // Group by area — tampil sebagai accordion card per area
+  const areas = [...new Set(data.map(m => m.area))];
+  document.getElementById('master-content').innerHTML = areas.map(a => {
+    const items = data.filter(m => m.area === a);
     return `
-      <tr>
-        <td style="font-weight:700;color:var(--text3);font-size:12px">${i+1}</td>
-        <td>${areaBadge(m.area)}</td>
-        <td style="font-weight:600">${m.tindakan}</td>
-        ${cells}
-        <td>
-          <button class="btn btn-outline btn-sm" onclick="openEditMaster(${m.id})">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteMaster(${m.id})">🗑</button>
-        </td>
-      </tr>
-    `;
-  }).join('') || '<tr><td colspan="18" style="text-align:center;padding:40px;color:var(--text3)">Tidak ada data</td></tr>';
+      <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
+        <div style="padding:14px 20px;background:var(--primary);display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            ${areaBadge(a)}
+            <span style="color:white;font-weight:700;font-size:14px;">${items.length} tindakan</span>
+          </div>
+        </div>
+
+        <!-- APD header legend -->
+        <div style="overflow-x:auto;">
+          <div style="min-width:600px;">
+            <!-- Legend APD -->
+            <div style="display:grid;grid-template-columns:32px 1fr repeat(13,1fr);gap:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:8px 16px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.3px;">
+              <div></div>
+              <div>Jenis Tindakan</div>
+              ${APD_UI.map(a => `<div style="text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 0;font-size:9px;">${a.icon}<br>${a.label}</div>`).join('')}
+              <div style="text-align:center;font-size:9px;">Aksi</div>
+            </div>
+
+            <!-- Rows -->
+            ${items.map((item, i) => `
+              <div style="display:grid;grid-template-columns:32px 1fr repeat(13,1fr) 80px;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:${i%2===0?'white':'var(--surface2)'};align-items:center;" id="mrow-${item.id}">
+                <div style="font-size:11px;font-weight:700;color:var(--text3);">${i+1}</div>
+                <div style="font-weight:600;font-size:13px;padding-right:8px;">${item.tindakan}</div>
+                ${APD_UI.map(apd => {
+                  const wajib = item[apd.key];
+                  return `<div style="text-align:center;">
+                    ${wajib
+                      ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:white;font-size:12px;font-weight:800;" title="${apd.label} — Wajib">✓</span>`
+                      : `<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--border);" title="${apd.label} — Tidak Wajib"></span>`
+                    }
+                  </div>`;
+                }).join('')}
+                <div style="display:flex;gap:4px;justify-content:center;">
+                  <button class="btn btn-outline btn-sm" onclick="openEditMaster(${item.id})" title="Edit">✏️</button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteMaster(${item.id})" title="Hapus">🗑</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function openAddMaster() {
   editingMasterId = null;
-  document.getElementById('modal-master-title').textContent = '➕ Tambah Data Master';
+  document.getElementById('modal-master-title').textContent = '➕ Tambah Tindakan Baru';
   document.getElementById('m-area').value = '';
   document.getElementById('m-tindakan').value = '';
   buildApdChecks({});
@@ -1899,9 +2004,9 @@ function openAddMaster() {
 
 function openEditMaster(id) {
   editingMasterId = id;
-  const m = masterData.find(x => x.id === id);
-  if(!m) return;
-  document.getElementById('modal-master-title').textContent = '✏️ Edit Data Master';
+  const m = masterData.find(x => String(x.id) === String(id));
+  if (!m) return;
+  document.getElementById('modal-master-title').textContent = '✏️ Edit Tindakan';
   document.getElementById('m-area').value = m.area;
   document.getElementById('m-tindakan').value = m.tindakan;
   buildApdChecks(m);
@@ -1909,53 +2014,62 @@ function openEditMaster(id) {
 }
 
 function buildApdChecks(m) {
-  document.getElementById('modal-apd-checks').innerHTML = APD_COLS.map(c => `
+  document.getElementById('modal-apd-checks').innerHTML = APD_UI.map(c => `
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;
-      padding:8px 10px;border-radius:8px;border:1.5px solid var(--border);
-      background:${m[c.key]?'rgba(15,76,129,0.07)':'white'}">
+      padding:10px 12px;border-radius:8px;border:1.5px solid ${m[c.key]?'var(--primary)':'var(--border)'};
+      background:${m[c.key]?'rgba(15,76,129,0.07)':'white'};transition:all .15s;"
+      onclick="this.style.background=document.getElementById('mc-${c.key}').checked?'white':'rgba(15,76,129,0.07)';this.style.borderColor=document.getElementById('mc-${c.key}').checked?'var(--border)':'var(--primary)'">
       <input type="checkbox" id="mc-${c.key}" ${m[c.key]?'checked':''} style="width:16px;height:16px;accent-color:var(--primary)">
-      ${c.label}
+      <span style="font-size:18px;">${c.icon}</span>
+      <span>${c.label}</span>
     </label>
   `).join('');
 }
 
-function saveMaster() {
-  const area = document.getElementById('m-area').value;
+async function saveMaster() {
+  const area     = document.getElementById('m-area').value;
   const tindakan = document.getElementById('m-tindakan').value.trim();
-  if(!area || !tindakan) { toast('Area dan Tindakan wajib diisi','error'); return; }
+  if (!area || !tindakan) { toast('Area dan Tindakan wajib diisi', 'error'); return; }
 
   const apdVals = {};
-  APD_COLS.forEach(c => { apdVals[c.key] = document.getElementById('mc-'+c.key).checked ? 1 : 0; });
+  APD_UI.forEach(c => { apdVals[c.key] = document.getElementById('mc-'+c.key).checked ? 1 : 0; });
 
-  if(editingMasterId) {
-    const idx = masterData.findIndex(m => m.id === editingMasterId);
-    if(idx >= 0) masterData[idx] = { ...masterData[idx], area, tindakan, ...apdVals };
-    toast('Data master diperbarui','success');
+  let savedRow;
+  if (editingMasterId) {
+    const idx = masterData.findIndex(m => String(m.id) === String(editingMasterId));
+    if (idx >= 0) {
+      masterData[idx] = { ...masterData[idx], area, tindakan, ...apdVals };
+      savedRow = masterData[idx];
+    }
+    toast('Tindakan diperbarui ✓', 'success');
   } else {
-    const newId = Math.max(0, ...masterData.map(m=>m.id)) + 1;
-    masterData.push({ id: newId, area, tindakan, ...apdVals });
-    toast('Data master ditambahkan','success');
+    const newId = 'local_' + Date.now();
+    savedRow = { id: newId, area, tindakan, ...apdVals };
+    masterData.push(savedRow);
+    toast('Tindakan ditambahkan ✓', 'success');
   }
 
   localStorage.setItem('apd_master', JSON.stringify(masterData));
   closeModal('modal-master');
   renderMaster();
+
+  // Sync ke Sheet (background)
+  await saveMasterToSheet(savedRow, false);
 }
 
-function deleteMaster(id) {
-  if(!confirm('Hapus data guideline ini?')) return;
-  masterData = masterData.filter(m => m.id !== id);
+async function deleteMaster(id) {
+  if (!confirm('Hapus tindakan ini dari guideline?\n(akan terhapus juga dari Google Sheet)')) return;
+  const row = masterData.find(m => String(m.id) === String(id));
+  masterData = masterData.filter(m => String(m.id) !== String(id));
   localStorage.setItem('apd_master', JSON.stringify(masterData));
   renderMaster();
-  toast('Data dihapus','warn');
+  toast('Tindakan dihapus', 'warn');
+
+  if (row) await saveMasterToSheet(row, true);
 }
 
 function importFromSheet() {
-  // Reset to default from sheet
-  masterData = [...DEFAULT_MASTER];
-  localStorage.setItem('apd_master', JSON.stringify(masterData));
-  renderMaster();
-  toast('Data berhasil disinkronkan dari Google Sheet','success');
+  syncMasterFromSheet();
 }
 
 // ===== CONFIG =====
@@ -2122,7 +2236,7 @@ if('serviceWorker' in navigator) {
 }
 
 // ===== INIT =====
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxiwedCbei76tcTBLV5tKVnmyOKQhzP6OHG1RGLUDEIosFprec93UZSIvf_vosliZUfcg/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxUkEOLq3f4BVZ1dCAqdQbUJ2fCrLwcdCwBNR36OiHzl3HEN1oDa562wcMJYRQ8C3v8hA/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Auto-init defaults
