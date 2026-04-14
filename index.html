@@ -914,15 +914,15 @@
           </div>
         </div>
 
-        <!-- Preview saved -->
+        <!-- Saved tindakan counter -->
         <div id="saved-tindakan-list"></div>
 
         <!-- Submit -->
-        <div style="padding-bottom:32px;">
-          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
-            <button class="btn btn-outline" onclick="resetForm()" style="justify-content:center;font-size:12px;">🔄 Reset</button>
-            <button class="btn btn-primary" onclick="submitAudit()" style="justify-content:center;">
-              💾 Kirim ke Google Sheets
+        <div id="submit-section" style="padding-bottom:32px;display:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <button class="btn btn-outline" onclick="resetForm()" style="justify-content:center;font-size:12px;">🔄 Audit Baru</button>
+            <button class="btn btn-success" onclick="showPage('rekap')" style="justify-content:center;">
+              📋 Lihat Rekapitulasi
             </button>
           </div>
         </div>
@@ -1044,7 +1044,7 @@
             <label>Apps Script Web App URL</label>
             <div class="input-group">
               <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." 
-                value="https://script.google.com/macros/s/AKfycbw_I446h4JCwtKlhtKyszUsOcg8Z7iHVV3vmVsl0mhuC5apXNktFAPWMS0G61GoFCnQrA/exec">
+                value="https://script.google.com/macros/s/AKfycbxUYX2DkMoCXLvvHqA7mg1S9Cs78oui3jqJbL5vkWpakBeo6ft7eYX9gfVr599mFgJbHw/exec">
               <button class="btn btn-primary" onclick="saveSheetConfig()">Simpan</button>
               <button class="btn btn-outline" onclick="testSheetConnection()">Test</button>
               <button class="btn btn-outline" onclick="resetSheetUrl()" title="Reset ke URL terbaru dari kode" style="background:#fff3cd;border-color:#f59e0b;color:#92400e;">🔄 Reset URL</button>
@@ -1653,11 +1653,34 @@ function saveTindakanAudit() {
     savedAt: new Date().toISOString()
   };
 
-  if (existingIdx >= 0) savedTindakanRows[existingIdx] = row;
-  else savedTindakanRows.push(row);
+  if (existingIdx >= 0) {
+    savedTindakanRows[existingIdx] = row;
+  } else {
+    savedTindakanRows.push(row);
+  }
 
-  toast(`✅ "${item.tindakan}" tersimpan — ${status}`, 'success');
+  // Langsung simpan ke auditData & localStorage
+  const { _masterId, ...cleanRow } = row;
+  const existAuditIdx = auditData.findIndex(a => a.no === cleanRow.no && a.tindakan === cleanRow.tindakan);
+  if (existAuditIdx >= 0) {
+    auditData[existAuditIdx] = cleanRow;
+  } else {
+    auditData.push(cleanRow);
+  }
+  localStorage.setItem('apd_audits', JSON.stringify(auditData));
+
+  // Langsung kirim ke Google Sheets
+  const url = localStorage.getItem('apd_sheet_url');
+  if (url) {
+    sendToSheet([cleanRow], url)
+      .then(() => toast(`✅ "${item.tindakan}" — ${status} · Terkirim ke Sheets`, 'success', 4000))
+      .catch(e => toast(`✅ "${item.tindakan}" tersimpan lokal. Sheet: ${e.message}`, 'warn', 4000));
+  } else {
+    toast(`✅ "${item.tindakan}" tersimpan — ${status}`, 'success');
+  }
+
   renderSavedTindakanList();
+  renderDashboard();
 
   const pill = document.getElementById('pill-' + item.id);
   if (pill) {
@@ -1676,76 +1699,43 @@ function backToTindakan() {
 
 function renderSavedTindakanList() {
   const container = document.getElementById('saved-tindakan-list');
-  if (!savedTindakanRows.length) { container.innerHTML = ''; return; }
+  const submitSection = document.getElementById('submit-section');
+  if (!savedTindakanRows.length) {
+    container.innerHTML = '';
+    if (submitSection) submitSection.style.display = 'none';
+    return;
+  }
 
-  // Renumber NO sequentially from auditData.length+1
+  // Renumber NO sequentially
   savedTindakanRows.forEach((r, i) => { r.no = auditData.length + i + 1; });
 
-  const usedAPDSummary = (row) => {
-    const used = APD_UI.filter(a => row.apd[a.key] === 'Y');
-    const notWajib = APD_UI.filter(a => {
-      const m = masterData.find(x => x.id === row._masterId);
-      return m && m[a.key] && row.apd[a.key] !== 'Y';
-    });
-    return { used, notWajib };
-  };
+  const patuhCount = savedTindakanRows.filter(r => r.status === 'Patuh').length;
+  const tidakCount = savedTindakanRows.filter(r => r.status === 'Tidak Patuh').length;
 
   container.innerHTML = `
-    <div class="card" style="margin-bottom:16px;padding:0;overflow:hidden;">
-      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-        <div class="card-title" style="margin:0;"><span>📄</span> Preview Laporan — ${savedTindakanRows.length} baris</div>
-        <div style="font-size:11px;color:var(--text3);">Sesuai header: NO · Tanggal · UNIT · AREA · JENIS TINDAKAN · PROFESI · APD · STATUS · WAKTU · KET</div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead>
-            <tr style="background:var(--primary);">
-              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">NO</th>
-              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">Tanggal</th>
-              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">UNIT</th>
-              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">AREA</th>
-              <th style="color:white;padding:8px 10px;text-align:left;min-width:150px;">JENIS TINDAKAN</th>
-              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">PROFESI</th>
-              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">APD Digunakan</th>
-              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">STATUS</th>
-              <th style="color:white;padding:8px 10px;text-align:center;white-space:nowrap;">WAKTU</th>
-              <th style="color:white;padding:8px 10px;text-align:left;white-space:nowrap;">KET</th>
-              <th style="color:white;padding:8px 10px;text-align:center;">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${savedTindakanRows.map((row, i) => {
-              const { used, notWajib } = usedAPDSummary(row);
-              const apdText = used.map(a => a.icon).join(' ') || '—';
-              const rowBg = i % 2 === 0 ? 'white' : 'var(--surface2)';
-              return `
-                <tr style="background:${rowBg};">
-                  <td style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text3);">${row.no}</td>
-                  <td style="padding:8px 10px;white-space:nowrap;">${row.tanggal}</td>
-                  <td style="padding:8px 10px;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;" title="${row.unit}">${row.unit||'—'}</td>
-                  <td style="padding:8px 10px;">${areaBadge(row.area)}</td>
-                  <td style="padding:8px 10px;font-weight:600;max-width:180px;">${row.tindakan}</td>
-                  <td style="padding:8px 10px;white-space:nowrap;">${row.profesi||'—'}</td>
-                  <td style="padding:8px 10px;text-align:center;font-size:15px;" title="${used.map(a=>a.label).join(', ')}">${apdText}</td>
-                  <td style="padding:8px 10px;text-align:center;"><span class="status-badge ${statusClass(row.status)}">${row.status}</span></td>
-                  <td style="padding:8px 10px;text-align:center;white-space:nowrap;">${row.waktu||'—'}</td>
-                  <td style="padding:8px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${row.ket||'—'}</td>
-                  <td style="padding:8px 10px;text-align:center;white-space:nowrap;">
-                    <button class="btn btn-outline btn-sm" onclick="selectTindakan(${row._masterId})" title="Edit">✏️</button>
-                    <button class="btn btn-danger btn-sm" onclick="removeSavedTindakan(${i})" title="Hapus">🗑</button>
-                  </td>
-                </tr>
-                ${notWajib.length ? `<tr style="background:rgba(239,68,68,0.04);">
-                  <td></td>
-                  <td colspan="10" style="padding:4px 10px 8px;font-size:11px;color:var(--danger);">
-                    ⚠️ APD wajib tidak digunakan: ${notWajib.map(a=>a.icon+' '+a.label).join(', ')}
-                  </td>
-                </tr>` : ''}`;
-            }).join('')}
-          </tbody>
-        </table>
+    <div class="card" style="margin-bottom:16px;padding:14px 18px;border-left:4px solid var(--success);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">✅</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--text);">${savedTindakanRows.length} tindakan tersimpan & terkirim ke Sheet</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+              <span style="color:var(--success);font-weight:600;">${patuhCount} Patuh</span>
+              ${tidakCount ? ` · <span style="color:var(--danger);font-weight:600;">${tidakCount} Tidak Patuh</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${savedTindakanRows.map((row, i) => `
+            <span title="${row.tindakan}" style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;background:${row.status==='Patuh'?'rgba(16,185,129,0.12)':'rgba(239,68,68,0.1)'};color:${row.status==='Patuh'?'#065f46':'#991b1b'};">
+              ${row.status==='Patuh'?'✅':'❌'} ${row.tindakan.length > 22 ? row.tindakan.slice(0,22)+'…' : row.tindakan}
+            </span>
+          `).join('')}
+        </div>
       </div>
     </div>`;
+
+  if (submitSection) submitSection.style.display = 'block';
 }
 
 function removeSavedTindakan(idx) {
@@ -1834,6 +1824,8 @@ function resetForm() {
   document.getElementById('step-tindakan').style.display = 'none';
   document.getElementById('apd-checklist-wrap').style.display = 'none';
   document.getElementById('saved-tindakan-list').innerHTML = '';
+  const ss = document.getElementById('submit-section');
+  if (ss) ss.style.display = 'none';
   savedTindakanRows = [];
   currentTindakanId = null;
   apdStates = {};
