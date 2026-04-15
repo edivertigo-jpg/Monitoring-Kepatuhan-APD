@@ -833,6 +833,12 @@
           <input type="time" id="f-waktu" required style="font-size:16px;font-weight:600;">
         </div>
 
+        <!-- PROFESI full width -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>PROFESI *</label>
+          <input type="text" id="f-profesi" placeholder="Perawat / Bidan / Ahli Gizi / Sanitasi / dll" required>
+        </div>
+
         <!-- UNIT full width -->
         <div class="form-group" style="margin-bottom:12px;">
           <label>UNIT / Ruangan *</label>
@@ -852,21 +858,10 @@
           </select>
         </div>
 
-        <!-- PROFESI full width -->
-        <div class="form-group" style="margin-bottom:12px;">
-          <label>PROFESI *</label>
-          <input type="text" id="f-profesi" placeholder="Perawat / Bidan / Ahli Gizi / Sanitasi / dll" required>
-        </div>
-
-        <!-- KET full width -->
-        <div class="form-group">
-          <label>KET / Keterangan</label>
-          <input type="text" id="f-ket" placeholder="Catatan tambahan (opsional)">
-        </div>
-
         <!-- Hidden -->
         <input type="hidden" id="f-nakes" value="">
         <input type="hidden" id="f-auditor" value="">
+        <input type="hidden" id="f-ket" value="">
 
       </div>
 
@@ -979,21 +974,19 @@
               <tr>
                 <th>NO</th>
                 <th>Tanggal</th>
-                <th>UNIT</th>
-                <th>AREA</th>
-                <th>JENIS TINDAKAN</th>
-                <th>PROFESI</th>
+                <th>Waktu</th>
+                <th>Profesi</th>
+                <th>Unit</th>
+                <th>Area</th>
+                <th>Jenis Tindakan</th>
                 <th>APD Digunakan</th>
-                <th>STATUS</th>
-                <th>WAKTU</th>
-                <th>KET</th>
-                <th>Nama Nakes</th>
-                <th>Auditor</th>
+                <th>Status</th>
+                <th>Keterangan</th>
                 <th>Aksi</th>
               </tr>
             </thead>
             <tbody id="rekap-tbody">
-              <tr><td colspan="13" style="text-align:center;padding:48px;color:var(--text3);">Belum ada data audit</td></tr>
+              <tr><td colspan="11" style="text-align:center;padding:48px;color:var(--text3);">Belum ada data audit</td></tr>
             </tbody>
           </table>
         </div>
@@ -1277,7 +1270,7 @@ if (localStorage.getItem('apd_master_version') !== MASTER_VERSION) {
   localStorage.setItem('apd_master_version', MASTER_VERSION);
 }
 let masterData = JSON.parse(localStorage.getItem('apd_master') || 'null') || DEFAULT_MASTER;
-let auditData = JSON.parse(localStorage.getItem('apd_audits') || '[]');
+let auditData = []; // Source of truth: Google Sheet — diisi saat sync
 let editingMasterId = null;
 let deferredPrompt = null;
 
@@ -1661,7 +1654,7 @@ function saveTindakanAudit() {
     apd: { ...apdStates },
     status,
     skor: wajibTotal ? Math.round(wajibOK / wajibTotal * 100) : null,
-    ket: document.getElementById('f-ket-tindakan').value || document.getElementById('f-ket').value,
+    ket: document.getElementById('f-ket-tindakan').value || '',
     savedAt: new Date().toISOString()
   };
 
@@ -1671,22 +1664,17 @@ function saveTindakanAudit() {
     savedTindakanRows.push(row);
   }
 
-  // Langsung simpan ke auditData & localStorage
+  // Langsung kirim ke Google Sheets (source of truth)
   const { _masterId, ...cleanRow } = row;
-  const existAuditIdx = auditData.findIndex(a => a.no === cleanRow.no && a.tindakan === cleanRow.tindakan);
-  if (existAuditIdx >= 0) {
-    auditData[existAuditIdx] = cleanRow;
-  } else {
-    auditData.push(cleanRow);
-  }
-  localStorage.setItem('apd_audits', JSON.stringify(auditData));
-
-  // Langsung kirim ke Google Sheets
   const url = localStorage.getItem('apd_sheet_url');
   if (url) {
     sendToSheet([cleanRow], url)
-      .then(() => toast(`✅ "${item.tindakan}" — ${status} · Terkirim ke Sheets`, 'success', 4000))
-      .catch(e => toast(`✅ "${item.tindakan}" tersimpan lokal. Sheet: ${e.message}`, 'warn', 4000));
+      .then(() => {
+        toast(`✅ "${item.tindakan}" — ${status} · Terkirim ke Sheet`, 'success', 4000);
+        // Sync ulang auditData dari sheet supaya dashboard/rekap akurat
+        syncAuditsFromSheet(true).then(() => renderDashboard());
+      })
+      .catch(e => toast(`⚠️ "${item.tindakan}" gagal ke Sheet: ${e.message}`, 'warn', 4000));
   } else {
     toast(`✅ "${item.tindakan}" tersimpan — ${status}`, 'success');
   }
@@ -1794,8 +1782,6 @@ async function submitAudit() {
   }
 
   const rows = getFormRows();
-  auditData.push(...rows);
-  localStorage.setItem('apd_audits', JSON.stringify(auditData));
 
   const url = localStorage.getItem('apd_sheet_url');
   if (url) {
@@ -1803,10 +1789,11 @@ async function submitAudit() {
       await sendToSheet(rows, url);
       toast(`${rows.length} baris berhasil tersimpan ke Google Sheets ✓`, 'success', 5000);
     } catch(e) {
-      toast('Tersimpan lokal. Gagal kirim ke Sheets: ' + e.message, 'warn', 5000);
+      toast('Gagal kirim ke Sheets: ' + e.message, 'warn', 5000);
     }
   } else {
-    toast(`${rows.length} baris tersimpan lokal`, 'success');
+    toast('URL Sheet belum dikonfigurasi!', 'error');
+    return;
   }
 
   resetForm();
@@ -1848,7 +1835,7 @@ async function syncAuditsFromSheet(silent = false) {
     if (json.ok && Array.isArray(json.data)) {
       // Apps Script v3.1 sudah mengembalikan format lengkap yang siap dipakai
       auditData = json.data.filter(r => r.tindakan);
-      localStorage.setItem('apd_audits', JSON.stringify(auditData));
+      // Tidak disimpan ke localStorage — Sheet adalah sumber kebenaran
       if (!silent) toast(`${auditData.length} data audit dimuat dari Sheet ✓`, 'success', 3000);
       if (indicator) indicator.innerHTML = `<span style="color:var(--success);font-size:12px;">✅ ${auditData.length} data · ${new Date().toLocaleTimeString('id-ID')}</span>`;
       // Re-render halaman aktif
@@ -1867,7 +1854,7 @@ async function syncAuditsFromSheet(silent = false) {
 }
 
 function resetForm() {
-  ['f-tanggal','f-waktu','f-unit','f-profesi','f-ket','f-ket-tindakan'].forEach(id => {
+  ['f-tanggal','f-waktu','f-unit','f-profesi','f-ket-tindakan'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -1903,38 +1890,37 @@ function renderRekap() {
   if(fSampai) data = data.filter(a => a.tanggal <= fSampai);
   if(fStatus) data = data.filter(a => a.status === fStatus);
   if(fSearch) data = data.filter(a =>
-    (a.auditor||'').toLowerCase().includes(fSearch) ||
-    (a.nakes||'').toLowerCase().includes(fSearch) ||
     (a.tindakan||'').toLowerCase().includes(fSearch) ||
-    (a.area||'').toLowerCase().includes(fSearch)
+    (a.area||'').toLowerCase().includes(fSearch) ||
+    (a.profesi||'').toLowerCase().includes(fSearch) ||
+    (a.unit||'').toLowerCase().includes(fSearch)
   );
 
   const tbody = document.getElementById('rekap-tbody');
   if(!data.length) {
-    tbody.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:48px;color:var(--text3);">Tidak ada data yang sesuai filter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:48px;color:var(--text3);">Tidak ada data yang sesuai filter</td></tr>';
     document.getElementById('rekap-summary').innerHTML = '';
     return;
   }
 
   tbody.innerHTML = data.map((a, i) => {
     const apdList = APD_UI.filter(c => a.apd && a.apd[c.key]==='Y').map(c=>`${c.icon} ${c.label}`).join(', ') || '—';
+    const rowIdx = auditData.indexOf(a);
     return `
       <tr>
         <td style="font-weight:700;color:var(--text3);text-align:center;">${a.no || i+1}</td>
         <td style="white-space:nowrap;">${a.tanggal||''}</td>
+        <td style="white-space:nowrap;">${a.waktu||'—'}</td>
+        <td style="white-space:nowrap;">${a.profesi||'—'}</td>
         <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${a.unit||''}">${a.unit||'—'}</td>
         <td>${areaBadge(a.area)}</td>
         <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;" title="${a.tindakan}">${a.tindakan}</td>
-        <td style="white-space:nowrap;">${a.profesi||'—'}</td>
         <td style="font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${apdList}">${apdList}</td>
         <td><span class="status-badge ${statusClass(a.status)}">${a.status}</span></td>
-        <td style="white-space:nowrap;">${a.waktu||'—'}</td>
-        <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${a.ket||'—'}</td>
-        <td style="white-space:nowrap;">${a.nakes||'—'}</td>
-        <td style="white-space:nowrap;">${a.auditor||'—'}</td>
+        <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;">${a.ket||'—'}</td>
         <td style="white-space:nowrap;">
-          <button class="btn btn-outline btn-sm" onclick="viewAuditDetail(${auditData.indexOf(a)})">👁</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteAudit(${auditData.indexOf(a)})">🗑</button>
+          <button class="btn btn-outline btn-sm" onclick="viewAuditDetail(${rowIdx})">👁</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAudit(${rowIdx})">🗑</button>
         </td>
       </tr>
     `;
@@ -1965,11 +1951,12 @@ function viewAuditDetail(idx) {
 
   document.getElementById('modal-detail-content').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
-      <div><label style="font-size:11px;color:var(--text3);font-weight:700">TANGGAL/WAKTU</label><div style="font-weight:600">${a.tanggal} ${a.waktu}</div></div>
-      <div><label style="font-size:11px;color:var(--text3);font-weight:700">AUDITOR</label><div style="font-weight:600">${a.auditor} (${a.jabatan||'-'})</div></div>
-      <div><label style="font-size:11px;color:var(--text3);font-weight:700">NAKES DIAUDIT</label><div style="font-weight:600">${a.nakes} (${a.profesi||'-'})</div></div>
-      <div><label style="font-size:11px;color:var(--text3);font-weight:700">AREA / SHIFT</label><div>${areaBadge(a.area)} ${a.shift||''}</div></div>
-      <div class="full" style="grid-column:1/-1"><label style="font-size:11px;color:var(--text3);font-weight:700">TINDAKAN</label><div style="font-weight:600">${a.tindakan}</div></div>
+      <div><label style="font-size:11px;color:var(--text3);font-weight:700">TANGGAL</label><div style="font-weight:600">${a.tanggal||'—'}</div></div>
+      <div><label style="font-size:11px;color:var(--text3);font-weight:700">WAKTU</label><div style="font-weight:600">${a.waktu||'—'}</div></div>
+      <div><label style="font-size:11px;color:var(--text3);font-weight:700">PROFESI</label><div style="font-weight:600">${a.profesi||'—'}</div></div>
+      <div><label style="font-size:11px;color:var(--text3);font-weight:700">UNIT</label><div style="font-weight:600">${a.unit||'—'}</div></div>
+      <div style="grid-column:1/-1"><label style="font-size:11px;color:var(--text3);font-weight:700">AREA</label><div>${areaBadge(a.area)}</div></div>
+      <div style="grid-column:1/-1"><label style="font-size:11px;color:var(--text3);font-weight:700">JENIS TINDAKAN</label><div style="font-weight:600">${a.tindakan||'—'}</div></div>
     </div>
     <div style="font-weight:700;margin-bottom:8px">Penggunaan APD:</div>
     <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
@@ -1978,19 +1965,36 @@ function viewAuditDetail(idx) {
     </table>
     <div style="display:flex;gap:16px;align-items:center;padding:14px;background:var(--bg);border-radius:var(--radius-sm);">
       <div>Status: <span class="status-badge ${statusClass(a.status)}">${a.status}</span></div>
-      <div>Skor: <strong>${a.skor!=null?a.skor+'%':'—'}</strong></div>
     </div>
-    ${a.ket?`<div style="margin-top:12px;font-size:13px;color:var(--text2)"><strong>Catatan:</strong> ${a.ket}</div>`:''}
+    ${a.ket ? `<div style="margin-top:12px;font-size:13px;color:var(--text2)"><strong>Keterangan:</strong> ${a.ket}</div>` : ''}
   `;
   openModal('modal-detail');
 }
 
-function deleteAudit(idx) {
-  if(!confirm('Hapus data audit ini?')) return;
-  auditData.splice(idx, 1);
-  localStorage.setItem('apd_audits', JSON.stringify(auditData));
+async function deleteAudit(idx) {
+  const a = auditData[idx];
+  if (!a) return;
+  if (!confirm('Hapus data audit ini dari Google Sheet?')) return;
+
+  const url = localStorage.getItem('apd_sheet_url');
+  if (url) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST', mode: 'cors', cache: 'no-cache',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deleteAudit', id: a.no, tanggal: a.tanggal, tindakan: a.tindakan })
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Gagal');
+      toast('Data dihapus dari Sheet ✓', 'warn');
+    } catch(e) {
+      toast('Gagal hapus dari Sheet: ' + e.message, 'error');
+      return;
+    }
+  }
+  // Refresh dari sheet
+  await syncAuditsFromSheet(true);
   renderRekap();
-  toast('Data dihapus','warn');
 }
 
 // ===== MASTER DATA — sync dengan Google Sheet =====
@@ -2292,8 +2296,8 @@ function renderConfig() {
   document.getElementById('cfg-rs-unit').value = localStorage.getItem('apd_rs_unit') || 'IPCN / PPI';
   document.getElementById('cfg-rs-alamat').value = localStorage.getItem('apd_rs_alamat') || '';
 
-  const bytes = JSON.stringify(auditData).length;
-  document.getElementById('storage-info').textContent = `${auditData.length} data audit tersimpan (≈${(bytes/1024).toFixed(1)} KB)`;
+  const bytes = JSON.stringify(masterData).length;
+  document.getElementById('storage-info').textContent = `${masterData.length} guideline master tersimpan lokal (≈${(bytes/1024).toFixed(1)} KB) · ${auditData.length} audit di-cache dari Sheet`;
 }
 
 function saveSheetConfig() {
@@ -2343,11 +2347,12 @@ function exportLocalData() {
 }
 
 function clearLocalData() {
-  if(!confirm('⚠️ Hapus semua data audit? Pastikan sudah dibackup!')) return;
-  auditData = [];
-  localStorage.removeItem('apd_audits');
+  if(!confirm('⚠️ Data audit tersimpan di Google Sheet, bukan di perangkat ini. Hapus cache lokal (master guideline)?')) return;
+  localStorage.removeItem('apd_master');
+  localStorage.removeItem('apd_master_version');
+  masterData = DEFAULT_MASTER;
   renderConfig();
-  toast('Semua data dihapus','warn');
+  toast('Cache lokal dibersihkan','warn');
 }
 
 // ===== DOWNLOAD EXCEL =====
@@ -2367,34 +2372,32 @@ function downloadExcel() {
 
   const rsName = localStorage.getItem('apd_rs_name') || 'RS Surya';
   const rsUnit = localStorage.getItem('apd_rs_unit') || 'IPCN / PPI';
-  // Headers sesuai sheet laporan persis
+
+  // Headers sesuai urutan kolom sheet laporan
   const headers = [
-    'NO', 'Tanggal', 'UNIT', 'AREA', 'JENIS TINDAKAN', 'PROFESI',
+    'NO', 'Tanggal', 'WAKTU', 'PROFESI', 'UNIT', 'AREA', 'JENIS TINDAKAN',
     'ST Pemeriksaan', 'ST Bedah/Steril', 'ST Rumah Tangga',
     'Masker Bedah', 'Masker N95/Respiratorik', 'Goggle', 'Faceshield',
-    'Gaun', 'Celemek', 'Apron', 'Topi', 'Sepatu Boots', 'Sepatu Kerja',
-    'STATUS', 'WAKTU', 'KET',
-    // kolom internal
-    'Nama Nakes', 'Auditor', 'Skor (%)'
+    'Gaun', 'Apron', 'Topi', 'Sepatu Boots', 'Sepatu Kerja',
+    'STATUS', 'KET'
   ];
+
+  const APD_ORDER = ['st_periksa','st_bedah','st_rt','masker_bedah','n95','goggle','faceshield','gaun','apron','topi','boots','sepatu_kerja'];
 
   const rows = data.map((a, i) => [
     a.no || i+1,
     a.tanggal || '',
+    a.waktu || '',
+    a.profesi || '',
     a.unit || '',
     a.area || '',
     a.tindakan || '',
-    a.profesi || '',
-    ...APD_UI.map(c => {
-      const v = a.apd?.[c.key];
-      return v==='Y'?'V':v==='N'?'':'-';
+    ...APD_ORDER.map(k => {
+      const v = a.apd?.[k];
+      return v==='Y'?'V': v==='N'?'':'-';
     }),
     a.status || '',
-    a.waktu || '',
     a.ket || '',
-    a.nakes || '',
-    a.auditor || '',
-    a.skor != null ? a.skor : ''
   ]);
 
   // Build CSV (Excel-compatible with UTF-8 BOM)
