@@ -652,6 +652,8 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* ===== CONFIG PAGE ===== */
   .config-section {
     background: white; border-radius: var(--radius); padding: 28px;
@@ -777,6 +779,12 @@
 
     <!-- ===== PAGE: FORM AUDIT ===== -->
     <div class="page" id="page-form">
+
+      <!-- Banner sinkronisasi background -->
+      <div id="form-sync-banner" style="display:none;align-items:center;gap:10px;background:rgba(15,76,129,0.08);border:1.5px solid rgba(15,76,129,0.2);border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:var(--primary);">
+        <span style="animation:spin 1s linear infinite;display:inline-block;font-size:16px;">⏳</span>
+        <span><strong>Menyinkronkan data guideline & audit dari Google Sheet...</strong> Mohon tunggu sebentar sebelum mengisi form.</span>
+      </div>
 
       <!-- Form Header compact mobile -->
       <div class="form-header" style="padding:16px 20px;margin-bottom:16px;">
@@ -1576,7 +1584,7 @@ function cycleAPD(key, itemId) {
   const cycle = { 'NA': 'Y', 'Y': 'N', 'N': 'NA' };
   apdStates[key] = cycle[apdStates[key] || 'NA'];
 
-  const item = masterData.find(m => m.id === itemId);
+  const item = masterData.find(m => String(m.id) === String(itemId));
   const card = document.getElementById('apdcard-' + key);
   const state = apdStates[key];
   const statusIcon = state === 'Y' ? '✓' : state === 'N' ? '✗' : '—';
@@ -1620,7 +1628,7 @@ function updateAPDStatusBadge(item) {
 }
 
 function saveTindakanAudit() {
-  const item = masterData.find(m => m.id === currentTindakanId);
+  const item = masterData.find(m => String(m.id) === String(currentTindakanId));
   if (!item) { toast('Pilih tindakan terlebih dahulu', 'error'); return; }
 
   let wajibOK = 0, wajibTotal = 0;
@@ -1636,8 +1644,8 @@ function saveTindakanAudit() {
 
   // NO = total existing audit data + posisi sesi saat ini
   const noBase = auditData.length + 1;
-  const existingIdx = savedTindakanRows.findIndex(r => r._masterId === item.id);
-  const noRow = existingIdx >= 0 ? savedTindakanRows[existingIdx].no : noBase + savedTindakanRows.filter(r => r._masterId !== item.id).length;
+  const existingIdx = savedTindakanRows.findIndex(r => String(r._masterId) === String(item.id));
+  const noRow = existingIdx >= 0 ? savedTindakanRows[existingIdx].no : noBase + savedTindakanRows.filter(r => String(r._masterId) !== String(item.id)).length;
 
   const row = {
     _masterId: item.id,
@@ -1987,33 +1995,22 @@ function deleteAudit(idx) {
 
 // ===== MASTER DATA — sync dengan Google Sheet =====
 
-async function syncMasterFromSheet() {
+// Core logic sync master — bisa dipanggil kapan saja (background/foreground)
+async function _doSyncMaster({ silent = false, setStatus = null } = {}) {
   const url = localStorage.getItem('apd_sheet_url');
-  const btn = document.getElementById('btn-sync-master');
-  const status = document.getElementById('master-sync-status');
-
   if (!url) {
-    toast('URL Apps Script belum dikonfigurasi. Masuk ke menu Konfigurasi.', 'warn');
+    if (!silent) toast('URL Apps Script belum dikonfigurasi.', 'warn');
     return;
   }
-
-  btn.disabled = true;
-  btn.textContent = '⏳ Sync...';
-  status.innerHTML = '<span style="color:var(--warn)">⏳ Mengambil data dari Sheet...</span>';
-
   try {
-    const res = await fetch(url + '?action=getMaster', {
-      method: 'GET',
-      mode: 'cors',
-      cache: 'no-cache'
-    });
+    if (setStatus) setStatus('<span style="color:var(--warn)">⏳ Mengambil data dari Sheet...</span>');
+    const res = await fetch(url + '?action=getMaster', { method: 'GET', mode: 'cors', cache: 'no-cache' });
     if (!res.ok) throw new Error(`HTTP ${res.status} — coba redeploy Apps Script`);
     const json = await res.json();
 
     if (json.ok && json.data && json.data.length) {
       masterData = json.data.map((r, i) => {
         const normalized = { ...r, id: r.id || (i + 1) };
-        // Normalisasi semua nilai APD ke integer 1/0
         APD_UI.forEach(a => {
           const v = normalized[a.key];
           normalized[a.key] = (v === 1 || v === '1' || v === true || v === 'V' || v === 'v' || v === 'Y') ? 1 : 0;
@@ -2022,28 +2019,40 @@ async function syncMasterFromSheet() {
       });
       localStorage.setItem('apd_master', JSON.stringify(masterData));
       localStorage.setItem('apd_master_version', 'sheet-synced-' + Date.now());
-      status.innerHTML = `<span style="color:var(--success)">✅ Sync berhasil — ${masterData.length} tindakan</span>`;
-      toast(`${masterData.length} guideline berhasil disync dari Sheet`, 'success');
-      renderMaster();
+      if (setStatus) setStatus(`<span style="color:var(--success)">✅ Sync berhasil — ${masterData.length} tindakan</span>`);
+      if (!silent) toast(`${masterData.length} guideline disync dari Sheet ✓`, 'success');
+      // Re-render jika halaman Guideline sedang aktif
+      if (document.getElementById('page-master')?.classList.contains('active')) renderMaster();
+      // Re-render form jika sedang di form audit (refresh tindakan list)
+      const area = document.getElementById('f-area')?.value;
+      if (document.getElementById('page-form')?.classList.contains('active') && area) renderTindakanList(area);
     } else if (json.ok && (!json.data || json.data.length === 0)) {
-      // Sheet Master APD kosong — push DEFAULT_MASTER ke sheet
-      status.innerHTML = '<span style="color:var(--warn)">⬆️ Sheet kosong, upload default ke Sheet...</span>';
+      if (setStatus) setStatus('<span style="color:var(--warn)">⬆️ Sheet kosong, upload default...</span>');
       await pushMasterToSheet();
-      status.innerHTML = `<span style="color:var(--success)">✅ Default master diupload ke Sheet (${masterData.length} tindakan)</span>`;
-      toast('Default guideline diupload ke Sheet Master APD', 'success');
+      if (setStatus) setStatus(`<span style="color:var(--success)">✅ Default diupload (${masterData.length} tindakan)</span>`);
+      if (!silent) toast('Default guideline diupload ke Sheet Master APD', 'success');
     } else {
       throw new Error(json.error || 'Response tidak valid');
     }
   } catch(e) {
     const hint = e.message.includes('fetch') || e.message.includes('Failed')
-      ? 'Cek: (1) URL Apps Script benar, (2) Apps Script sudah di-deploy ulang dengan akses "Anyone", (3) koneksi internet aktif'
+      ? 'Cek koneksi & URL Apps Script'
       : e.message;
-    status.innerHTML = `<span style="color:var(--danger)">❌ Gagal: ${hint}</span>`;
-    toast('Gagal sync dari Sheet: ' + e.message, 'error');
+    if (setStatus) setStatus(`<span style="color:var(--danger)">❌ Gagal: ${hint}</span>`);
+    if (!silent) toast('Gagal sync Master: ' + e.message, 'error');
   }
+}
 
-  btn.disabled = false;
-  btn.textContent = '🔄 Sync dari Sheet';
+// Dipanggil dari tombol di halaman Guideline (dengan UI update)
+async function syncMasterFromSheet() {
+  const btn    = document.getElementById('btn-sync-master');
+  const status = document.getElementById('master-sync-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Sync...'; }
+  await _doSyncMaster({
+    silent: false,
+    setStatus: html => { if (status) status.innerHTML = html; }
+  });
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync dari Sheet'; }
 }
 
 async function pushMasterToSheet() {
@@ -2448,20 +2457,26 @@ if('serviceWorker' in navigator) {
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbw_I446h4JCwtKlhtKyszUsOcg8Z7iHVV3vmVsl0mhuC5apXNktFAPWMS0G61GoFCnQrA/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Auto-init defaults
-  // Selalu update URL ke versi terbaru (paksa overwrite URL lama)
   localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
-  if (!localStorage.getItem('apd_rs_name')) {
-    localStorage.setItem('apd_rs_name', 'RS Surya');
-  }
-  if (!localStorage.getItem('apd_rs_unit')) {
-    localStorage.setItem('apd_rs_unit', 'IPCN / PPI');
-  }
+  if (!localStorage.getItem('apd_rs_name')) localStorage.setItem('apd_rs_name', 'RS Surya');
+  if (!localStorage.getItem('apd_rs_unit')) localStorage.setItem('apd_rs_unit', 'IPCN / PPI');
+
   resetForm();
   renderDashboard();
   renderMaster();
-  // Sync audit data dari sheet laporan saat load
-  syncAuditsFromSheet(true);
+
+  // Tampilkan banner sinkronisasi di form audit selagi background sync berjalan
+  const syncBanner = document.getElementById('form-sync-banner');
+  if (syncBanner) syncBanner.style.display = 'flex';
+
+  // Sync master & audit secara paralel di background
+  Promise.all([
+    _doSyncMaster({ silent: true }),
+    syncAuditsFromSheet(true)
+  ]).finally(() => {
+    if (syncBanner) syncBanner.style.display = 'none';
+    renderDashboard();
+  });
 });
 </script>
 </body>
