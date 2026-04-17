@@ -1,156 +1,112 @@
-/**
- * ============================================================
- *  SERVICE WORKER — Dashboard Komite Nakes Lain SHND
- *  v2 — Cache agresif dibersihkan saat update
- * ============================================================
- */
+// ============================================================
+// APD Audit Service Worker — RSU Surya Husadha Nusa Dua
+// BUMP VERSION INI SETIAP UPDATE FILE APAPUN
+// ============================================================
+const CACHE_VERSION = 'apd-surya-v17'; // <-- update tiap deploy
+const CACHE_NAME = CACHE_VERSION;
 
-const CACHE_VERSION = 'nakes-shnd-v2';          // ← naikkan ini setiap deploy
-const STATIC_CACHE  = `${CACHE_VERSION}-static`;
-const FONT_CACHE    = `${CACHE_VERSION}-fonts`;
-
-const PRECACHE_ASSETS = [
+// File yang di-cache untuk offline
+const ASSETS = [
+  './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './logo_surya.png',
 ];
 
-const NETWORK_ONLY_PATTERNS = [
-  'script.google.com',
-  'googleapis.com/macros',
-];
-
-const SWR_PATTERNS = [
-  'fonts.googleapis.com',
-  'fonts.gstatic.com',
-  'cdnjs.cloudflare.com',
-  'lh3.googleusercontent.com',
-];
-
-// ── INSTALL ──────────────────────────────────────────────────
+// ===== INSTALL: cache assets baru =====
 self.addEventListener('install', event => {
-  console.log('[SW] Installing', CACHE_VERSION);
+  console.log('[SW] Installing:', CACHE_NAME);
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache =>
-        Promise.allSettled(
-          PRECACHE_ASSETS.map(url =>
-            cache.add(url).catch(e => console.warn('[SW] Precache skip:', url, e.message))
-          )
-        )
-      )
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS).catch(err => {
+        console.warn('[SW] Some assets failed to cache:', err);
+        return cache.add('./index.html'); // fallback minimal
+      }))
+      .then(() => {
+        console.log('[SW] Install complete, skipping waiting...');
+        return self.skipWaiting(); // langsung aktif, tidak tunggu tab ditutup
+      })
   );
 });
 
-// ── ACTIVATE ─────────────────────────────────────────────────
+// ===== ACTIVATE: hapus SEMUA cache lama =====
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating', CACHE_VERSION);
+  console.log('[SW] Activating:', CACHE_NAME);
   event.waitUntil(
     caches.keys()
-      .then(keys => {
-        console.log('[SW] Caches ditemukan:', keys);
-        return Promise.all(
-          keys
-            .filter(key => key !== STATIC_CACHE && key !== FONT_CACHE)
-            .map(key => {
-              console.log('[SW] Hapus cache lama:', key);
-              return caches.delete(key);
-            })
-        );
-      })
-      .then(() => self.clients.claim())
-      .then(() => {
-        return self.clients.matchAll({ type: 'window' }).then(clients => {
-          clients.forEach(client => {
-            client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+      .then(cacheNames => {
+        const deleteOld = cacheNames
+          .filter(name => name !== CACHE_NAME) // hapus semua selain yang baru
+          .map(name => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
           });
+        return Promise.all(deleteOld);
+      })
+      .then(() => {
+        console.log('[SW] Old caches cleared. Taking control of all clients...');
+        return self.clients.claim(); // ambil kontrol semua tab yang sudah terbuka
+      })
+      .then(() => {
+        // Kirim pesan ke semua tab: minta reload
+        return self.clients.matchAll({ type: 'window' });
+      })
+      .then(clients => {
+        clients.forEach(client => {
+          console.log('[SW] Sending RELOAD to client:', client.url);
+          client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
         });
       })
   );
 });
 
-// ── FETCH ────────────────────────────────────────────────────
+// ===== FETCH: network-first untuk HTML, cache-first untuk assets =====
 self.addEventListener('fetch', event => {
-  const { request } = event;
-  const url = request.url;
+  const url = new URL(event.request.url);
 
-  if (request.method !== 'GET') return;
-
-  if (NETWORK_ONLY_PATTERNS.some(p => url.includes(p))) {
-    event.respondWith(networkOnly(request));
-    return;
+  // Jangan intercept request ke Google (API/Sheets)
+  if (url.hostname.includes('google') ||
+      url.hostname.includes('googleapis') ||
+      url.hostname.includes('fonts.g') ||
+      url.hostname.includes('script.google')) {
+    return; // biarkan browser handle langsung
   }
 
-  if (SWR_PATTERNS.some(p => url.includes(p))) {
-    event.respondWith(staleWhileRevalidate(request, FONT_CACHE));
-    return;
-  }
-
-  event.respondWith(networkFirst(request));
-});
-
-// ── STRATEGI FETCH ───────────────────────────────────────────
-
-async function networkOnly(request) {
-  try {
-    return await fetch(request);
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ success: false, error: 'Tidak ada koneksi internet.' }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
+  // Untuk navigasi (buka halaman): network-first, fallback cache
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Update cache dengan versi terbaru
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => {
+          // Offline: gunakan cache
+          return caches.match('./index.html');
+        })
     );
+    return;
   }
-}
 
-async function networkFirst(request) {
-  const cache = await caches.open(STATIC_CACHE);
-  try {
-    const response = await fetch(request, { cache: 'no-store' });
-    if (response.ok) {
-      cache.put(request, response.clone()).catch(() => {});
-    }
-    return response;
-  } catch (err) {
-    console.warn('[SW] Network gagal, pakai cache:', request.url);
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    const indexCache = await cache.match('./index.html');
-    if (indexCache) return indexCache;
-    return new Response('<h2>Tidak ada koneksi &amp; belum ada cache</h2>', {
-      status: 503,
-      headers: { 'Content-Type': 'text/html; charset=utf-8' }
-    });
-  }
-}
+  // Untuk assets (JS, CSS, images): cache-first, update background
+  event.respondWith(
+    caches.match(event.request)
+      .then(cached => {
+        const networkFetch = fetch(event.request)
+          .then(response => {
+            if (response && response.status === 200 && event.request.method === 'GET') {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          .catch(() => cached); // fallback ke cache jika offline
 
-async function staleWhileRevalidate(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  const fetchPromise = fetch(request)
-    .then(response => {
-      if (response.ok) cache.put(request, response.clone()).catch(() => {});
-      return response;
-    })
-    .catch(() => null);
-  return cached || fetchPromise;
-}
-
-// ── PESAN DARI CLIENT ─────────────────────────────────────────
-self.addEventListener('message', event => {
-  if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  if (event.data?.type === 'GET_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_VERSION });
-  }
-  if (event.data?.type === 'CLEAR_ALL_CACHE') {
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => caches.delete(k)))
-    ).then(() => {
-      if (event.ports[0]) event.ports[0].postMessage({ cleared: true });
-      console.log('[SW] Semua cache dibersihkan via perintah manual');
-    });
-  }
+        return cached || networkFetch;
+      })
+  );
 });
