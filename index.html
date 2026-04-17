@@ -1043,27 +1043,38 @@
 
       <div class="config-section">
         <div class="config-title">🔗 Koneksi Google Sheets</div>
-        <div class="config-sub">Hubungkan ke Google Sheets via Apps Script Web App URL</div>
 
-        <!-- Panduan deploy -->
-        <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;">
-          <div style="font-weight:700;color:#1d4ed8;margin-bottom:8px;">📋 Cara Deploy Apps Script (wajib jika URL berubah):</div>
-          <ol style="margin:0;padding-left:18px;color:#1e40af;line-height:1.8;">
-            <li>Buka Google Sheet → <strong>Extensions → Apps Script</strong></li>
-            <li>Hapus semua kode lama → paste <strong>Code.gs</strong> terbaru</li>
-            <li>Klik <strong>Deploy → New Deployment</strong> (bukan edit!)</li>
-            <li>Type: <strong>Web app</strong> · Execute as: <strong>Me</strong> · Access: <strong>Anyone</strong></li>
-            <li>Copy URL → paste di bawah → klik <strong>Simpan & Test</strong></li>
-          </ol>
+        <!-- Status koneksi aktif -->
+        <div id="conn-status-bar" style="display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;">
+          <div id="conn-dot" style="width:10px;height:10px;border-radius:50%;background:var(--text3);flex-shrink:0;"></div>
+          <div id="conn-label" style="flex:1;color:var(--text2);">Mengecek koneksi...</div>
+          <button class="btn btn-outline btn-sm" onclick="autoTestConn()">🔌 Cek Ulang</button>
         </div>
 
+        <!-- URL aktif (read-only display) -->
+        <div style="margin-bottom:12px;font-size:12px;color:var(--text3);word-break:break-all;background:var(--bg);border-radius:8px;padding:8px 12px;" id="active-url-display"></div>
+
+        <!-- Panduan deploy -->
+        <details style="margin-bottom:16px;">
+          <summary style="cursor:pointer;font-size:13px;font-weight:700;color:#1d4ed8;padding:8px 0;">📋 Cara Deploy / Update Apps Script</summary>
+          <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-top:8px;font-size:13px;">
+            <ol style="margin:0;padding-left:18px;color:#1e40af;line-height:2;">
+              <li>Buka Google Sheet → <strong>Extensions → Apps Script</strong></li>
+              <li>Hapus semua kode → paste <strong>Code.gs</strong> terbaru</li>
+              <li>Klik <strong>Deploy → New Deployment</strong> <em>(bukan edit!)</em></li>
+              <li>Type: <strong>Web app</strong> · Execute as: <strong>Me</strong> · Access: <strong>Anyone</strong></li>
+              <li>Copy URL baru → paste di bawah → klik <strong>Simpan & Test</strong></li>
+            </ol>
+          </div>
+        </details>
+
         <div class="form-group" style="margin-bottom:12px;">
-          <label>Apps Script Web App URL *</label>
+          <label>Apps Script Web App URL Baru</label>
           <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;">
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-          <button class="btn btn-primary" onclick="saveAndTestSheet()">💾 Simpan & Test Koneksi</button>
-          <button class="btn btn-outline" onclick="resetSheetUrl()" style="background:#fff3cd;border-color:#f59e0b;color:#92400e;">🔄 Reset ke URL Default</button>
+          <button class="btn btn-primary" onclick="saveAndTestSheet()">💾 Simpan & Test</button>
+          <button class="btn btn-outline btn-sm" onclick="resetSheetUrl()" style="background:#fff3cd;border-color:#f59e0b;color:#92400e;">🔄 Reset Default</button>
         </div>
         <div id="cfg-status" style="margin-top:8px;font-size:13px;padding:10px 14px;border-radius:8px;display:none;"></div>
       </div>
@@ -2367,6 +2378,49 @@ function clearPending() {
 }
 
 // ===== CONFIG =====
+async function autoTestConn() {
+  const url = localStorage.getItem('apd_sheet_url');
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  const urlDisplay = document.getElementById('active-url-display');
+
+  if (!dot || !label) return;
+
+  if (!url) {
+    dot.style.background = '#f59e0b';
+    label.textContent = '⚠️ URL belum dikonfigurasi';
+    return;
+  }
+
+  if (urlDisplay) {
+    urlDisplay.textContent = '🔗 URL aktif: ' + url;
+  }
+
+  dot.style.background = '#f59e0b';
+  label.textContent = '⏳ Mengecek koneksi ke Apps Script...';
+
+  try {
+    const res = await fetch(url + '?action=ping', { mode: 'cors', cache: 'no-cache' });
+    const json = await res.json();
+    if (json.ok) {
+      dot.style.background = 'var(--success)';
+      label.innerHTML = `✅ Terhubung — <strong>${json.message || 'API aktif'}</strong>`;
+      // Auto flush pending jika ada
+      if (_pendingQueue.length) {
+        label.innerHTML += ` · <span style="color:var(--warn)">📤 Mengirim ${_pendingQueue.length} antrian...</span>`;
+        await _flushPending();
+        _checkPendingBanner();
+        renderConfig();
+      }
+    } else {
+      throw new Error(json.error || 'Respons tidak valid');
+    }
+  } catch(e) {
+    dot.style.background = 'var(--danger)';
+    label.innerHTML = `❌ Gagal: <strong>${e.message}</strong> — Deploy ulang Apps Script dengan <em>Code.gs</em> terbaru`;
+  }
+}
+
 async function saveAndTestSheet() {
   const url = document.getElementById('cfg-sheet-url').value.trim();
   if (!url) { toast('Masukkan URL Apps Script terlebih dahulu', 'error'); return; }
@@ -2400,7 +2454,10 @@ async function saveAndTestSheet() {
 }
 
 function renderConfig() {
-  document.getElementById('cfg-sheet-url').value = localStorage.getItem('apd_sheet_url') || DEFAULT_SHEET_URL;
+  const savedUrl = localStorage.getItem('apd_sheet_url') || DEFAULT_SHEET_URL;
+  document.getElementById('cfg-sheet-url').value = ''; // kosongkan — user harus paste URL baru
+  document.getElementById('cfg-sheet-url').placeholder = savedUrl.length > 60
+    ? savedUrl.slice(0, 60) + '...' : savedUrl;
   document.getElementById('cfg-rs-name').value = localStorage.getItem('apd_rs_name') || 'RS Surya';
   document.getElementById('cfg-rs-unit').value = localStorage.getItem('apd_rs_unit') || 'IPCN / PPI';
   document.getElementById('cfg-rs-alamat').value = localStorage.getItem('apd_rs_alamat') || '';
@@ -2409,6 +2466,12 @@ function renderConfig() {
   document.getElementById('storage-info').textContent =
     `${masterData.length} guideline master (≈${(bytes/1024).toFixed(1)} KB) · ${auditData.length} audit di-cache dari Sheet`;
 
+  // Tampilkan URL aktif dan auto-test
+  const urlDisplay = document.getElementById('active-url-display');
+  if (urlDisplay) urlDisplay.textContent = '🔗 URL aktif: ' + savedUrl;
+  setTimeout(() => autoTestConn(), 300);
+
+  // Tampilkan section antrian jika ada
   const pendingSection = document.getElementById('pending-section');
   const pendingInfo = document.getElementById('pending-info');
   if (_pendingQueue.length > 0) {
@@ -2553,13 +2616,11 @@ if('serviceWorker' in navigator) {
 }
 
 // ===== INIT =====
-const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbw_I446h4JCwtKlhtKyszUsOcg8Z7iHVV3vmVsl0mhuC5apXNktFAPWMS0G61GoFCnQrA/exec';
+const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbxoYrqChbHErdURriamqlPiIeZOGf3j_37xmYOHlHf0jPYwAb0SQe1hYa88mIG7LUsDPQ/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Hanya set URL default jika BELUM pernah dikonfigurasi user
-  if (!localStorage.getItem('apd_sheet_url')) {
-    localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
-  }
+  // Paksa update ke URL terbaru (ganti URL lama apapun)
+  localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
   if (!localStorage.getItem('apd_rs_name')) localStorage.setItem('apd_rs_name', 'RS Surya');
   if (!localStorage.getItem('apd_rs_unit')) localStorage.setItem('apd_rs_unit', 'IPCN / PPI');
 
