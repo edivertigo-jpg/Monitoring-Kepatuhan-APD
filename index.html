@@ -1640,7 +1640,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
       .then(reg => {
         console.log('[SW] Registered:', reg.scope);
-        // Deteksi update SW
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
           newWorker.addEventListener('statechange', () => {
@@ -1651,6 +1650,14 @@ if ('serviceWorker' in navigator) {
         });
       })
       .catch(err => console.warn('[SW] Registration failed:', err));
+
+    // Dengarkan pesan dari SW — reload otomatis saat cache baru aktif
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data?.type === 'SW_UPDATED') {
+        console.log('[SW] Cache baru aktif, reload halaman…');
+        window.location.reload();
+      }
+    });
   });
 }
 </script>
