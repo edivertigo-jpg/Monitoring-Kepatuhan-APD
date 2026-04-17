@@ -1043,29 +1043,29 @@
 
       <div class="config-section">
         <div class="config-title">🔗 Koneksi Google Sheets</div>
-        <div class="config-sub">Hubungkan ke Google Sheets sebagai database via Apps Script Web App URL</div>
-        <div class="form-grid">
-          <div class="form-group full">
-            <label>Apps Script Web App URL</label>
-            <div class="input-group">
-              <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." 
-                value="https://script.google.com/macros/s/AKfycbxUYX2DkMoCXLvvHqA7mg1S9Cs78oui3jqJbL5vkWpakBeo6ft7eYX9gfVr599mFgJbHw/exec">
-              <button class="btn btn-primary" onclick="saveSheetConfig()">Simpan</button>
-              <button class="btn btn-outline" onclick="testSheetConnection()">Test</button>
-              <button class="btn btn-outline" onclick="resetSheetUrl()" title="Reset ke URL terbaru dari kode" style="background:#fff3cd;border-color:#f59e0b;color:#92400e;">🔄 Reset URL</button>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Sheet ID (opsional, untuk referensi)</label>
-            <input type="text" id="cfg-sheet-id" placeholder="1_vY-60vETHUz-SYMz63Mb579ERnzA5otLedYasJFMW0"
-              value="1_vY-60vETHUz-SYMz63Mb579ERnzA5otLedYasJFMW0">
-          </div>
-          <div class="form-group">
-            <label>Nama Sheet Laporan</label>
-            <input type="text" id="cfg-sheet-name" value="Laporan Audit">
-          </div>
+        <div class="config-sub">Hubungkan ke Google Sheets via Apps Script Web App URL</div>
+
+        <!-- Panduan deploy -->
+        <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:13px;">
+          <div style="font-weight:700;color:#1d4ed8;margin-bottom:8px;">📋 Cara Deploy Apps Script (wajib jika URL berubah):</div>
+          <ol style="margin:0;padding-left:18px;color:#1e40af;line-height:1.8;">
+            <li>Buka Google Sheet → <strong>Extensions → Apps Script</strong></li>
+            <li>Hapus semua kode lama → paste <strong>Code.gs</strong> terbaru</li>
+            <li>Klik <strong>Deploy → New Deployment</strong> (bukan edit!)</li>
+            <li>Type: <strong>Web app</strong> · Execute as: <strong>Me</strong> · Access: <strong>Anyone</strong></li>
+            <li>Copy URL → paste di bawah → klik <strong>Simpan & Test</strong></li>
+          </ol>
         </div>
-        <div id="cfg-status" style="margin-top:12px;font-size:13px;padding:10px 14px;border-radius:8px;display:none;"></div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>Apps Script Web App URL *</label>
+          <input type="url" id="cfg-sheet-url" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="btn btn-primary" onclick="saveAndTestSheet()">💾 Simpan & Test Koneksi</button>
+          <button class="btn btn-outline" onclick="resetSheetUrl()" style="background:#fff3cd;border-color:#f59e0b;color:#92400e;">🔄 Reset ke URL Default</button>
+        </div>
+        <div id="cfg-status" style="margin-top:8px;font-size:13px;padding:10px 14px;border-radius:8px;display:none;"></div>
       </div>
 
       <div class="config-section">
@@ -1091,13 +1091,23 @@
       </div>
 
       <div class="config-section">
-        <div class="config-title">🗑️ Manajemen Data Lokal</div>
-        <div class="config-sub">Data audit tersimpan di browser (localStorage). Backup sebelum menghapus.</div>
+        <div class="config-title">🗑️ Manajemen Data</div>
+        <div class="config-sub">Data audit tersimpan di Google Sheet. Cache lokal hanya untuk master guideline.</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-outline" onclick="exportLocalData()">📤 Export Data JSON</button>
-          <button class="btn btn-warn" onclick="clearLocalData()">⚠️ Hapus Semua Data</button>
+          <button class="btn btn-outline" onclick="exportLocalData()">📤 Export JSON</button>
+          <button class="btn btn-warn" onclick="clearLocalData()">🗑 Hapus Cache Lokal</button>
         </div>
         <div id="storage-info" style="margin-top:12px;font-size:13px;color:var(--text2);"></div>
+      </div>
+
+      <div class="config-section" id="pending-section" style="display:none;">
+        <div class="config-title" style="color:var(--warn);">⚠️ Data Antrian (Belum Terkirim ke Sheet)</div>
+        <div class="config-sub">Data berikut gagal terkirim dan tersimpan sementara di perangkat.</div>
+        <div id="pending-info" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-success" onclick="retryPending()">🔄 Kirim Sekarang ke Sheet</button>
+          <button class="btn btn-danger" onclick="clearPending()">🗑 Buang Antrian</button>
+        </div>
       </div>
     </div>
 
@@ -1671,12 +1681,18 @@ function saveTindakanAudit() {
     sendToSheet([cleanRow], url)
       .then(() => {
         toast(`✅ "${item.tindakan}" — ${status} · Terkirim ke Sheet`, 'success', 4000);
-        // Sync ulang auditData dari sheet supaya dashboard/rekap akurat
         syncAuditsFromSheet(true).then(() => renderDashboard());
       })
-      .catch(e => toast(`⚠️ "${item.tindakan}" gagal ke Sheet: ${e.message}`, 'warn', 4000));
+      .catch(e => {
+        // Simpan ke antrian offline, coba kirim saat ada koneksi
+        _savePending([cleanRow]);
+        _checkPendingBanner();
+        toast(`⚠️ Gagal ke Sheet, disimpan di antrian. Cek koneksi & pastikan Apps Script sudah di-deploy ulang.`, 'warn', 6000);
+      });
   } else {
-    toast(`✅ "${item.tindakan}" tersimpan — ${status}`, 'success');
+    _savePending([cleanRow]);
+    _checkPendingBanner();
+    toast(`⚠️ URL Sheet belum dikonfigurasi. Data disimpan di antrian.`, 'warn', 5000);
   }
 
   renderSavedTindakanList();
@@ -1809,6 +1825,45 @@ async function sendToSheet(rows, url) {
     body: JSON.stringify({ action: 'addAudit', data: rows })
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Sheet error');
+}
+
+function _checkPendingBanner() {
+  const existing = document.getElementById('pending-banner');
+  if (_pendingQueue.length > 0) {
+    if (!existing) {
+      const banner = document.createElement('div');
+      banner.id = 'pending-banner';
+      banner.style.cssText = 'position:fixed;top:68px;left:0;right:0;z-index:200;background:var(--warn);color:white;font-size:13px;font-weight:600;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;';
+      banner.innerHTML = `<span>⚠️ ${_pendingQueue.length} data belum terkirim ke Sheet</span><button onclick="retryPending()" style="background:rgba(255,255,255,0.25);border:none;color:white;padding:4px 12px;border-radius:6px;font-weight:700;cursor:pointer;font-size:12px;">Kirim Sekarang</button>`;
+      document.body.appendChild(banner);
+    }
+  } else if (existing) {
+    existing.remove();
+  }
+}
+let _pendingQueue = JSON.parse(localStorage.getItem('apd_pending') || '[]');
+
+function _savePending(rows) {
+  _pendingQueue.push(...rows);
+  localStorage.setItem('apd_pending', JSON.stringify(_pendingQueue));
+}
+
+async function _flushPending() {
+  if (!_pendingQueue.length) return;
+  const url = localStorage.getItem('apd_sheet_url');
+  if (!url) return;
+  const batch = [..._pendingQueue];
+  try {
+    await sendToSheet(batch, url);
+    _pendingQueue = [];
+    localStorage.removeItem('apd_pending');
+    toast(`✅ ${batch.length} data antrian berhasil dikirim ke Sheet`, 'success', 4000);
+    syncAuditsFromSheet(true);
+  } catch(e) {
+    // Tetap simpan di antrian
+  }
 }
 
 // ===== SYNC AUDIT DATA FROM SHEET LAPORAN =====
@@ -2288,45 +2343,80 @@ function importFromSheet() {
   syncMasterFromSheet();
 }
 
+async function retryPending() {
+  if (!_pendingQueue.length) { toast('Tidak ada data antrian', 'info'); return; }
+  const url = localStorage.getItem('apd_sheet_url');
+  if (!url) { toast('URL Sheet belum dikonfigurasi', 'error'); return; }
+  toast(`⏳ Mengirim ${_pendingQueue.length} data ke Sheet...`, 'info', 3000);
+  await _flushPending();
+  renderConfig();
+}
+
+function clearPending() {
+  if (!confirm(`Buang ${_pendingQueue.length} data antrian? Data ini TIDAK akan tersimpan ke Sheet.`)) return;
+  _pendingQueue = [];
+  localStorage.removeItem('apd_pending');
+  renderConfig();
+  toast('Antrian dibersihkan', 'warn');
+}
+
 // ===== CONFIG =====
+async function saveAndTestSheet() {
+  const url = document.getElementById('cfg-sheet-url').value.trim();
+  if (!url) { toast('Masukkan URL Apps Script terlebih dahulu', 'error'); return; }
+  if (!url.includes('script.google.com')) { toast('URL tidak valid — harus dari script.google.com', 'error'); return; }
+
+  const st = document.getElementById('cfg-status');
+  st.style.display = 'block';
+  st.style.background = '#fef3c7'; st.style.color = '#92400e';
+  st.textContent = '⏳ Mengetes koneksi...';
+
+  try {
+    const res = await fetch(url + '?action=ping', { mode: 'cors', cache: 'no-cache' });
+    const json = await res.json();
+    if (json.ok) {
+      localStorage.setItem('apd_sheet_url', url);
+      st.style.background = '#d1fae5'; st.style.color = '#065f46';
+      st.textContent = '✅ Koneksi berhasil! URL disimpan. Sync data...';
+      toast('URL disimpan & koneksi OK ✓', 'success', 4000);
+      setTimeout(() => {
+        Promise.all([_doSyncMaster({ silent: true }), syncAuditsFromSheet(false)])
+          .then(() => { if (_pendingQueue.length) _flushPending().then(() => { _checkPendingBanner(); renderConfig(); }); });
+      }, 300);
+    } else {
+      throw new Error(json.error || 'Response tidak valid dari Apps Script');
+    }
+  } catch(e) {
+    st.style.background = '#fee2e2'; st.style.color = '#991b1b';
+    st.innerHTML = `❌ Gagal: <strong>${e.message}</strong><br>
+      <small>Pastikan: (1) Apps Script sudah Deploy ulang, (2) Access = Anyone, (3) URL benar</small>`;
+  }
+}
+
 function renderConfig() {
   document.getElementById('cfg-sheet-url').value = localStorage.getItem('apd_sheet_url') || DEFAULT_SHEET_URL;
-  document.getElementById('cfg-sheet-id').value = localStorage.getItem('apd_sheet_id') || '1_vY-60vETHUz-SYMz63Mb579ERnzA5otLedYasJFMW0';
   document.getElementById('cfg-rs-name').value = localStorage.getItem('apd_rs_name') || 'RS Surya';
   document.getElementById('cfg-rs-unit').value = localStorage.getItem('apd_rs_unit') || 'IPCN / PPI';
   document.getElementById('cfg-rs-alamat').value = localStorage.getItem('apd_rs_alamat') || '';
 
   const bytes = JSON.stringify(masterData).length;
-  document.getElementById('storage-info').textContent = `${masterData.length} guideline master tersimpan lokal (≈${(bytes/1024).toFixed(1)} KB) · ${auditData.length} audit di-cache dari Sheet`;
-}
+  document.getElementById('storage-info').textContent =
+    `${masterData.length} guideline master (≈${(bytes/1024).toFixed(1)} KB) · ${auditData.length} audit di-cache dari Sheet`;
 
-function saveSheetConfig() {
-  localStorage.setItem('apd_sheet_url', document.getElementById('cfg-sheet-url').value);
-  localStorage.setItem('apd_sheet_id', document.getElementById('cfg-sheet-id').value);
-  toast('Konfigurasi Google Sheets disimpan','success');
+  const pendingSection = document.getElementById('pending-section');
+  const pendingInfo = document.getElementById('pending-info');
+  if (_pendingQueue.length > 0) {
+    pendingSection.style.display = 'block';
+    pendingInfo.innerHTML = `<strong style="color:var(--warn)">${_pendingQueue.length} baris</strong> belum terkirim. Pastikan koneksi aktif & URL sudah benar, lalu klik "Kirim Sekarang".`;
+  } else {
+    pendingSection.style.display = 'none';
+  }
 }
 
 function resetSheetUrl() {
   localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
   document.getElementById('cfg-sheet-url').value = DEFAULT_SHEET_URL;
-  toast('URL direset ke default terbaru ✓', 'success');
-}
-
-async function testSheetConnection() {
-  const url = document.getElementById('cfg-sheet-url').value;
-  if(!url) { toast('Masukkan URL terlebih dahulu','error'); return; }
-  const st = document.getElementById('cfg-status');
-  st.style.display = 'block';
-  st.style.background = '#fef3c7'; st.style.color = '#92400e';
-  st.textContent = '⏳ Mengetes koneksi...';
-  try {
-    const res = await fetch(url + '?action=ping', { mode: 'cors' });
-    st.style.background = '#d1fae5'; st.style.color = '#065f46';
-    st.textContent = '✅ Koneksi berhasil! Status: ' + res.status;
-  } catch(e) {
-    st.style.background = '#fee2e2'; st.style.color = '#991b1b';
-    st.textContent = '❌ Gagal konek: ' + e.message;
-  }
+  toast('URL direset ke default ✓', 'success');
 }
 
 function saveRSConfig() {
@@ -2460,13 +2550,17 @@ if('serviceWorker' in navigator) {
 const DEFAULT_SHEET_URL = 'https://script.google.com/macros/s/AKfycbw_I446h4JCwtKlhtKyszUsOcg8Z7iHVV3vmVsl0mhuC5apXNktFAPWMS0G61GoFCnQrA/exec';
 
 document.addEventListener('DOMContentLoaded', () => {
-  localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
+  // Hanya set URL default jika BELUM pernah dikonfigurasi user
+  if (!localStorage.getItem('apd_sheet_url')) {
+    localStorage.setItem('apd_sheet_url', DEFAULT_SHEET_URL);
+  }
   if (!localStorage.getItem('apd_rs_name')) localStorage.setItem('apd_rs_name', 'RS Surya');
   if (!localStorage.getItem('apd_rs_unit')) localStorage.setItem('apd_rs_unit', 'IPCN / PPI');
 
   resetForm();
   renderDashboard();
   renderMaster();
+  _checkPendingBanner(); // tampilkan banner jika ada antrian dari sesi sebelumnya
 
   // Tampilkan banner sinkronisasi di form audit selagi background sync berjalan
   const syncBanner = document.getElementById('form-sync-banner');
@@ -2476,7 +2570,12 @@ document.addEventListener('DOMContentLoaded', () => {
   Promise.all([
     _doSyncMaster({ silent: true }),
     syncAuditsFromSheet(true)
-  ]).finally(() => {
+  ]).then(() => {
+    // Setelah koneksi berhasil, coba kirim antrian yang belum terkirim
+    if (_pendingQueue.length) {
+      _flushPending().then(() => { _checkPendingBanner(); renderConfig(); });
+    }
+  }).finally(() => {
     if (syncBanner) syncBanner.style.display = 'none';
     renderDashboard();
   });
