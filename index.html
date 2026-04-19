@@ -138,9 +138,9 @@
 <body>
 
 <div id="install-banner">
-  <span class="bi">📱</span>
-  <div class="bt"><strong>Pasang Aplikasi APD Monitor</strong><small>Akses lebih cepat, bisa dipakai offline</small></div>
-  <button class="btn-install" id="btn-install-accept">Pasang Sekarang</button>
+  <span class="bi">📲</span>
+  <div class="bt"><strong>Pasang Aplikasi APD Monitor</strong><small>Akses lebih cepat di HP/Laptop, bisa dipakai offline</small></div>
+  <button class="btn-install" id="btn-install-accept">📥 Pasang Sekarang</button>
   <button class="btn-later" id="btn-install-later">Nanti</button>
   <button class="btn-close" id="btn-install-dismiss">✕</button>
 </div>
@@ -736,11 +736,11 @@ if('serviceWorker' in navigator){
     }
   });
 }
-// ── PWA INSTALL ──
 // ── PWA INSTALL ──────────────────────────────────────────
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-// Snooze: kalau user pilih "Nanti", banner tidak muncul selama 1 jam
 function isSnoozed(){
   const t = parseInt(localStorage.getItem('pwa-snooze') || '0');
   return Date.now() < t;
@@ -748,11 +748,8 @@ function isSnoozed(){
 
 function showInstallButtons(){
   if(isStandalone) return;
-  // Banner atas
   if(!isSnoozed()) $('install-banner').classList.add('show');
-  // Tombol topbar
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'inline-flex';
-  // Tombol sidebar
   const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex';
 }
 
@@ -762,27 +759,91 @@ function hideInstallButtons(){
   const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'none';
 }
 
+// Modal panduan install iOS/manual
+function showIOSInstallModal(){
+  const existing = document.getElementById('ios-install-modal');
+  if(existing){ existing.classList.add('open'); return; }
+  const modal = document.createElement('div');
+  modal.id = 'ios-install-modal';
+  modal.className = 'modal-backdrop open';
+  modal.style.zIndex = '9999';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:380px">
+      <div class="modal-header">
+        <div class="modal-title">📲 Cara Pasang Aplikasi</div>
+        <button class="modal-close" onclick="document.getElementById('ios-install-modal').classList.remove('open')">✕</button>
+      </div>
+      ${isIOS ? `
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Ikuti langkah berikut di <strong>Safari</strong>:</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">1️⃣</span>
+          <span style="font-size:.83rem">Ketuk tombol <strong>Bagikan</strong> <span style="font-size:16px">⎋</span> di bawah layar Safari</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">2️⃣</span>
+          <span style="font-size:.83rem">Gulir ke bawah, pilih <strong>"Tambahkan ke Layar Utama"</strong></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">3️⃣</span>
+          <span style="font-size:.83rem">Ketuk <strong>"Tambah"</strong> di pojok kanan atas</span>
+        </div>
+      </div>
+      ` : `
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Ikuti langkah berikut di browser Anda:</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">1️⃣</span>
+          <span style="font-size:.83rem">Klik ikon <strong>⋮ Menu</strong> di pojok kanan atas browser</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">2️⃣</span>
+          <span style="font-size:.83rem">Pilih <strong>"Install App"</strong> atau <strong>"Tambahkan ke layar utama"</strong></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
+          <span style="font-size:22px">3️⃣</span>
+          <span style="font-size:.83rem">Konfirmasi dengan klik <strong>"Install"</strong> / <strong>"Pasang"</strong></span>
+        </div>
+      </div>
+      `}
+      <div style="margin-top:20px;text-align:right">
+        <button class="btn btn-primary" onclick="document.getElementById('ios-install-modal').classList.remove('open')">✓ Mengerti</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target===modal) modal.classList.remove('open'); });
+}
+
 async function doInstall(){
-  if(!deferredPrompt) return;
-  $('install-banner').classList.remove('show');
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  if(outcome === 'accepted'){
-    hideInstallButtons();
-    showToast('🎉 Aplikasi berhasil dipasang!');
+  if(deferredPrompt){
+    $('install-banner').classList.remove('show');
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if(outcome === 'accepted'){
+      hideInstallButtons();
+      showToast('🎉 Aplikasi berhasil dipasang!');
+    } else {
+      showToast('Install dibatalkan');
+    }
   } else {
-    showToast('Install dibatalkan');
+    // Tidak ada native prompt — tampilkan panduan manual
+    showIOSInstallModal();
   }
 }
 
-// Event utama dari browser
+// Event utama dari browser (Chrome/Edge/Android)
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
   console.log('[PWA] ✅ Install prompt ready');
   showInstallButtons();
 });
+
+// iOS Safari: tidak ada beforeinstallprompt, tampilkan banner manual
+if(isIOS && isSafari && !isStandalone){
+  setTimeout(() => showInstallButtons(), 1500);
+}
 
 // Tombol Pasang Sekarang
 $('btn-install-accept').addEventListener('click', doInstall);
@@ -795,7 +856,7 @@ if(tbInstall) tbInstall.addEventListener('click', doInstall);
 const sbInstall = $('sidebar-install-btn');
 if(sbInstall) sbInstall.addEventListener('click', doInstall);
 
-// Tombol Nanti — snooze 1 jam, banner sembunyi tapi tombol topbar/sidebar tetap ada
+// Tombol Nanti — snooze 1 jam
 $('btn-install-later').addEventListener('click', () => {
   $('install-banner').classList.remove('show');
   localStorage.setItem('pwa-snooze', (Date.now() + 60 * 60 * 1000).toString());
