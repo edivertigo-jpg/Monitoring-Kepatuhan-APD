@@ -160,7 +160,7 @@
   <div class="sidebar-footer">
     <div style="color:rgba(255,255,255,.55);font-size:.75rem;font-weight:600"><span class="sync-dot"></span>Google Sheets</div>
     <div id="last-sync" style="color:rgba(255,255,255,.4);font-size:.72rem;margin-top:3px">—</div>
-    <button id="sidebar-install-btn" style="display:none;margin-top:10px;width:100%;background:var(--mint);color:var(--navy);border:none;padding:8px 12px;border-radius:8px;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:7px;">
+    <button id="sidebar-install-btn" style="display:flex;justify-content:center;margin-top:10px;width:100%;background:var(--mint);color:var(--navy);border:none;padding:8px 12px;border-radius:8px;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:7px;">
       📲 Pasang di Perangkat
     </button>
   </div>
@@ -172,7 +172,7 @@
     <div class="topbar-title"><h1 id="page-title">Dashboard</h1><p id="page-sub">Ringkasan kepatuhan penggunaan APD</p></div>
     <div class="topbar-actions">
       <button class="btn btn-outline btn-sm" id="btn-refresh">🔄 Sinkron</button>
-      <button class="btn btn-success btn-sm" id="btn-topbar-install" style="display:none">📲 Install App</button>
+      <button class="btn btn-success btn-sm" id="btn-topbar-install" style="display:inline-flex">📲 Install App</button>
       <button class="btn btn-primary btn-sm" id="btn-tambah" style="display:none">➕ Tambah</button>
     </div>
   </div>
@@ -756,78 +756,119 @@ function showInstallButtons(){
 function hideInstallButtons(){
   $('install-banner').classList.remove('show');
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'none';
-  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'none';
+  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex'; // sidebar tetap tampil
 }
 
-// Modal panduan install iOS/manual
+// Tampilkan banner & tombol langsung saat halaman dimuat (tidak tunggu browser event)
+if(!isStandalone && !isSnoozed()){
+  // Langsung tampilkan banner
+  setTimeout(() => { $('install-banner').classList.add('show'); }, 800);
+}
+
+// Modal panduan install
 function showIOSInstallModal(){
   const existing = document.getElementById('ios-install-modal');
-  if(existing){ existing.classList.add('open'); return; }
+  if(existing){ existing.style.display='flex'; return; }
   const modal = document.createElement('div');
   modal.id = 'ios-install-modal';
   modal.className = 'modal-backdrop open';
   modal.style.zIndex = '9999';
-  modal.innerHTML = `
-    <div class="modal" style="max-width:380px">
+
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isChrome = /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+  const isEdge = /edg/i.test(navigator.userAgent);
+
+  let steps = '';
+  let subtitle = '';
+
+  if(isIOS && isSafari){
+    subtitle = 'Langkah di <strong>iPhone/iPad (Safari)</strong>:';
+    steps = `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
+        <div><strong>Ketuk tombol Share ⎋</strong><br><span style="font-size:.8rem;color:var(--muted)">Tombol di bawah tengah layar Safari (kotak dengan panah ke atas)</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
+        <div><strong>Gulir & pilih "Add to Home Screen"</strong><br><span style="font-size:.8rem;color:var(--muted)">Cari di daftar opsi Share Sheet</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">3️⃣</span>
+        <div><strong>Ketuk "Add" di pojok kanan atas</strong><br><span style="font-size:.8rem;color:var(--muted)">Aplikasi akan muncul di layar utama HP</span></div>
+      </div>`;
+  } else if(isAndroid && isChrome){
+    subtitle = 'Langkah di <strong>Android (Chrome)</strong>:';
+    steps = `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
+        <div><strong>Ketuk ⋮ (tiga titik) kanan atas Chrome</strong><br><span style="font-size:.8rem;color:var(--muted)">Pojok kanan atas browser</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
+        <div><strong>Pilih "Install app" / "Add to Home screen"</strong><br><span style="font-size:.8rem;color:var(--muted)">Mungkin bernama "Tambahkan ke layar utama"</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">3️⃣</span>
+        <div><strong>Ketuk "Install" / "Pasang"</strong><br><span style="font-size:.8rem;color:var(--muted)">Ikon APD Monitor akan muncul di layar utama</span></div>
+      </div>`;
+  } else {
+    // Desktop Chrome / Edge / lainnya
+    const browser = isEdge ? 'Edge' : 'Chrome';
+    subtitle = `Langkah di <strong>Laptop/PC (${browser})</strong>:`;
+    steps = `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
+        <div><strong>Klik ikon ⊕ di address bar</strong><br><span style="font-size:.8rem;color:var(--muted)">Ada ikon install di pojok kanan address bar (URL bar)</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">   atau</span>
+        <div style="font-size:.83rem">Klik <strong>⋮ Menu → Cast, save and share → Install page as app</strong></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
+        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
+        <div><strong>Klik "Install" pada dialog yang muncul</strong><br><span style="font-size:.8rem;color:var(--muted)">APD Monitor akan terbuka sebagai aplikasi terpisah</span></div>
+      </div>`;
+  }
+
+  modal.innerHTML = \`
+    <div class="modal" style="max-width:420px">
       <div class="modal-header">
-        <div class="modal-title">📲 Cara Pasang Aplikasi</div>
-        <button class="modal-close" onclick="document.getElementById('ios-install-modal').classList.remove('open')">✕</button>
+        <div class="modal-title">📲 Cara Pasang APD Monitor</div>
+        <button class="modal-close" onclick="document.getElementById('ios-install-modal').style.display='none'">✕</button>
       </div>
-      ${isIOS ? `
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Ikuti langkah berikut di <strong>Safari</strong>:</p>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">1️⃣</span>
-          <span style="font-size:.83rem">Ketuk tombol <strong>Bagikan</strong> <span style="font-size:16px">⎋</span> di bawah layar Safari</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">2️⃣</span>
-          <span style="font-size:.83rem">Gulir ke bawah, pilih <strong>"Tambahkan ke Layar Utama"</strong></span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">3️⃣</span>
-          <span style="font-size:.83rem">Ketuk <strong>"Tambah"</strong> di pojok kanan atas</span>
-        </div>
+      <p style="font-size:.83rem;color:var(--muted);margin-bottom:14px">\${subtitle}</p>
+      <div style="display:flex;flex-direction:column;gap:10px">\${steps}</div>
+      <div style="margin-top:18px;padding:10px 14px;background:#fef9c3;border-radius:8px;font-size:.78rem;color:#854d0e">
+        💡 <strong>Tips:</strong> Setelah dipasang, buka APD Monitor dari layar utama HP atau shortcut desktop untuk pengalaman terbaik.
       </div>
-      ` : `
-      <p style="font-size:.85rem;color:var(--muted);margin-bottom:16px">Ikuti langkah berikut di browser Anda:</p>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">1️⃣</span>
-          <span style="font-size:.83rem">Klik ikon <strong>⋮ Menu</strong> di pojok kanan atas browser</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">2️⃣</span>
-          <span style="font-size:.83rem">Pilih <strong>"Install App"</strong> atau <strong>"Tambahkan ke layar utama"</strong></span>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border-radius:10px">
-          <span style="font-size:22px">3️⃣</span>
-          <span style="font-size:.83rem">Konfirmasi dengan klik <strong>"Install"</strong> / <strong>"Pasang"</strong></span>
-        </div>
+      <div style="margin-top:16px;text-align:right">
+        <button class="btn btn-primary" onclick="document.getElementById('ios-install-modal').style.display='none'">✓ Mengerti</button>
       </div>
-      `}
-      <div style="margin-top:20px;text-align:right">
-        <button class="btn btn-primary" onclick="document.getElementById('ios-install-modal').classList.remove('open')">✓ Mengerti</button>
-      </div>
-    </div>`;
+    </div>\`;
   document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.classList.remove('open'); });
+  modal.addEventListener('click', e => { if(e.target===modal) modal.style.display='none'; });
 }
 
 async function doInstall(){
   if(deferredPrompt){
     $('install-banner').classList.remove('show');
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    if(outcome === 'accepted'){
-      hideInstallButtons();
-      showToast('🎉 Aplikasi berhasil dipasang!');
-    } else {
-      showToast('Install dibatalkan');
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if(outcome === 'accepted'){
+        hideInstallButtons();
+        showToast('🎉 Aplikasi berhasil dipasang!');
+      } else {
+        showToast('Install dibatalkan. Bisa install manual lewat menu browser.');
+        showIOSInstallModal();
+      }
+    } catch(e) {
+      deferredPrompt = null;
+      showIOSInstallModal();
     }
   } else {
-    // Tidak ada native prompt — tampilkan panduan manual
+    // Tampilkan panduan manual untuk semua perangkat
     showIOSInstallModal();
   }
 }
@@ -836,14 +877,9 @@ async function doInstall(){
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log('[PWA] ✅ Install prompt ready');
-  showInstallButtons();
+  console.log('[PWA] ✅ Native install prompt tersedia!');
+  // Update tombol install agar langsung trigger native prompt
 });
-
-// iOS Safari: tidak ada beforeinstallprompt, tampilkan banner manual
-if(isIOS && isSafari && !isStandalone){
-  setTimeout(() => showInstallButtons(), 1500);
-}
 
 // Tombol Pasang Sekarang
 $('btn-install-accept').addEventListener('click', doInstall);
