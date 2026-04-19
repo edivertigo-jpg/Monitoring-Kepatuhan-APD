@@ -327,7 +327,51 @@
     <div id="modal-detail-body"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
       <button class="btn btn-danger btn-sm" id="btn-hapus-modal">🗑 Hapus Data</button>
+      <button class="btn btn-primary btn-sm" id="btn-edit-modal">✏️ Edit</button>
       <button class="btn btn-outline btn-sm" id="modal-close-detail2">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT -->
+<div class="modal-backdrop" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Observasi</div>
+      <button class="modal-close" id="modal-close-edit">✕</button>
+    </div>
+    <div class="form-grid" id="edit-form">
+      <div class="form-group"><label>Tanggal *</label><input type="date" id="ed-tanggal"/></div>
+      <div class="form-group"><label>Waktu</label><input type="time" id="ed-waktu"/></div>
+      <div class="form-group"><label>Profesi *</label>
+        <select id="ed-profesi"><option value="">— Pilih —</option>
+          <option>Dokter</option><option>Perawat</option><option>Bidan</option><option>Ahli Gizi</option>
+          <option>Tenaga CSSD</option><option>Tenaga Laundry</option><option>Tenaga Kebersihan</option>
+          <option>Analis Laboratorium</option><option>Radiografer</option><option>Farmasi</option><option>Lainnya</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Unit *</label><select id="ed-unit"><option value="">— Pilih Unit —</option></select></div>
+      <div class="form-group"><label>Area *</label>
+        <select id="ed-area"><option value="">— Pilih —</option>
+          <option>Perawatan NON ISO</option><option>Perawatan ISO</option>
+          <option>CSSD</option><option>GIZI</option><option>LAUNDRY</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Jenis Tindakan *</label>
+        <select id="ed-tindakan"><option value="">— Pilih Area dulu —</option></select>
+      </div>
+      <div class="form-full">
+        <label style="font-size:.78rem;font-weight:600;color:var(--muted);display:block;margin-bottom:8px">APD yang Digunakan <span style="color:var(--blue);font-size:.7rem">(🔵 = wajib sesuai standar)</span></label>
+        <div class="apd-grid" id="ed-apd-checklist"></div>
+      </div>
+      <div class="form-group"><label>Status Kepatuhan *</label>
+        <select id="ed-status"><option value="">— Pilih —</option><option value="Patuh">Patuh</option><option value="Tidak Patuh">Tidak Patuh</option></select>
+      </div>
+      <div class="form-group"><label>Keterangan</label><input type="text" id="ed-keterangan" placeholder="Catatan tambahan…"/></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline btn-sm" id="modal-close-edit2">Batal</button>
+      <button class="btn btn-primary btn-sm" id="btn-simpan-edit">💾 Simpan Perubahan</button>
     </div>
   </div>
 </div>
@@ -548,6 +592,105 @@ $('btn-hapus-modal').addEventListener('click',async()=>{
   if(!currentDetailRow||!confirm('Hapus data observasi ini?'))return;
   try{showLoading('Menghapus…');await api({},{action:'deleteLaporan',data:{_rowIndex:currentDetailRow._rowIndex}});$('modal-detail').classList.remove('open');showToast('✅ Data berhasil dihapus');await loadLaporan();await loadDashboard(dashFilters);}catch(e){showToast('❌ '+e.message);}hideLoading();
 });
+
+// ── EDIT MODAL ──
+$('btn-edit-modal').addEventListener('click',()=>{ openEditModal(currentDetailRow); });
+$('modal-close-edit').addEventListener('click',()=>$('modal-edit').classList.remove('open'));
+$('modal-close-edit2').addEventListener('click',()=>$('modal-edit').classList.remove('open'));
+
+function populateEditUnitDropdown(){
+  const sel=$('ed-unit');
+  while(sel.options.length>1)sel.remove(1);
+  UNITS.forEach(u=>{const o=document.createElement('option');o.value=o.textContent=u;sel.appendChild(o);});
+}
+
+function openEditModal(row){
+  $('modal-detail').classList.remove('open');
+  populateEditUnitDropdown();
+
+  // Isi form dengan data existing
+  $('ed-tanggal').value = row['Tanggal'] ? new Date(row['Tanggal']).toISOString().slice(0,10) : '';
+  $('ed-waktu').value   = row['WAKTU']||'';
+  $('ed-profesi').value = row['PROFESI']||'';
+  $('ed-unit').value    = row['UNIT']||'';
+  $('ed-status').value  = row['Status']||'';
+  $('ed-keterangan').value = row['Keterangn']||'';
+
+  // Isi dropdown area
+  const area = row['AREA']||'';
+  $('ed-area').value = area;
+
+  // Isi dropdown tindakan
+  const selT=$('ed-tindakan');
+  selT.innerHTML='<option value="">— Pilih Tindakan —</option>';
+  (masterData?.byArea?.[area]||[]).forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r['Jenis Tindakan'];selT.appendChild(o);});
+  $('ed-tindakan').value = row['JENIS TINDAKAN']||'';
+
+  // Render APD checklist dengan nilai existing
+  const std = masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===row['JENIS TINDAKAN']);
+  $('ed-apd-checklist').innerHTML = APD_COLS.map(a=>{
+    const req = std && std[a.mKey]==='V';
+    const checked = row[a.key]==='V';
+    return`<label class="apd-item${req?' required':''}" for="ed-chk-${a.mKey}">
+      <input type="checkbox" id="ed-chk-${a.mKey}" data-key="${a.key}" ${checked?'checked':''} onchange="autoStatusEdit()"/>
+      <span>${a.label}</span>${req?'<span class="req-badge">WAJIB</span>':''}
+    </label>`;
+  }).join('');
+
+  // Event area change
+  $('ed-area').onchange = function(){
+    const ar=this.value,sel=$('ed-tindakan');
+    sel.innerHTML='<option value="">— Pilih Tindakan —</option>';
+    (masterData?.byArea?.[ar]||[]).forEach(r=>{const o=document.createElement('option');o.value=o.textContent=r['Jenis Tindakan'];sel.appendChild(o);});
+    renderEditAPDChecklist(ar,'');
+  };
+  $('ed-tindakan').onchange=function(){ renderEditAPDChecklist($('ed-area').value,this.value); autoStatusEdit(); };
+
+  $('modal-edit').classList.add('open');
+}
+
+function renderEditAPDChecklist(area,tindakan){
+  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
+  $('ed-apd-checklist').innerHTML=APD_COLS.map(a=>{
+    const req=std&&std[a.mKey]==='V';
+    return`<label class="apd-item${req?' required':''}" for="ed-chk-${a.mKey}">
+      <input type="checkbox" id="ed-chk-${a.mKey}" data-key="${a.key}" onchange="autoStatusEdit()"/>
+      <span>${a.label}</span>${req?'<span class="req-badge">WAJIB</span>':''}
+    </label>`;
+  }).join('');
+}
+
+function autoStatusEdit(){
+  const area=$('ed-area').value,tindakan=$('ed-tindakan').value;
+  if(!area||!tindakan)return;
+  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
+  if(!std)return;
+  const allOk=APD_COLS.every(a=>{ const req=std[a.mKey]==='V'; const chk=document.getElementById('ed-chk-'+a.mKey)?.checked; return !req||chk; });
+  $('ed-status').value=allOk?'Patuh':'Tidak Patuh';
+}
+
+$('btn-simpan-edit').addEventListener('click',async()=>{
+  const tgl=$('ed-tanggal').value,profesi=$('ed-profesi').value,unit=$('ed-unit').value;
+  const area=$('ed-area').value,tindakan=$('ed-tindakan').value,status=$('ed-status').value;
+  if(!tgl||!profesi||!unit||!area||!tindakan||!status){showToast('⚠️ Lengkapi semua field yang bertanda *');return;}
+
+  const data={
+    _rowIndex: currentDetailRow._rowIndex,
+    'Tanggal':tgl,'WAKTU':$('ed-waktu').value,'PROFESI':profesi,
+    'UNIT':unit,'AREA':area,'JENIS TINDAKAN':tindakan,
+    'Status':status,'Keterangn':$('ed-keterangan').value
+  };
+  APD_COLS.forEach(a=>{ data[a.key]=document.getElementById('ed-chk-'+a.mKey)?.checked?'V':''; });
+
+  try{
+    showLoading('Menyimpan perubahan…');
+    await api({},{action:'updateLaporan',data});
+    $('modal-edit').classList.remove('open');
+    showToast('✅ Data berhasil diupdate!');
+    await loadLaporan(); await loadDashboard(dashFilters);
+  }catch(e){showToast('❌ '+e.message);}
+  hideLoading();
+});
 $('btn-filter').addEventListener('click',()=>{
   const f={};
   if($('f-date-from').value)f.dateFrom=$('f-date-from').value;if($('f-date-to').value)f.dateTo=$('f-date-to').value;
@@ -569,10 +712,38 @@ $('btn-reset-form').addEventListener('click',resetForm);
 function resetForm(){['in-waktu','in-unit','in-keterangan'].forEach(id=>$(id).value='');['in-profesi','in-area','in-tindakan','in-status'].forEach(id=>$(id).value='');$('apd-checklist').innerHTML='';$('in-tanggal').value=new Date().toISOString().slice(0,10);}
 $('btn-refresh').addEventListener('click',async()=>{showLoading('Menyinkronkan data…');try{await Promise.all([loadMaster(),loadDashboard(dashFilters),loadLaporan()]);showToast('✅ Data berhasil disinkronkan');}catch(e){showToast('❌ '+e.message);}hideLoading();});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn(e)));
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;setTimeout(()=>{if(!localStorage.getItem('pwa-dismissed'))$('install-banner').classList.add('show');},2000);});
-$('btn-install-accept').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();const c=await deferredPrompt.userChoice;deferredPrompt=null;$('install-banner').classList.remove('show');if(c.outcome==='accepted')showToast('🎉 Aplikasi berhasil dipasang!');});
-$('btn-install-dismiss').addEventListener('click',()=>{$('install-banner').classList.remove('show');localStorage.setItem('pwa-dismissed','1');});
-window.addEventListener('appinstalled',()=>{$('install-banner').classList.remove('show');showToast('🎉 APD Monitor terpasang!');});
+// ── PWA INSTALL ──
+let installDismissedAt=parseInt(localStorage.getItem('pwa-dis-ts')||'0');
+function canShowInstall(){return Date.now()-installDismissedAt>86400000;}
+
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  console.log('[PWA] install prompt available');
+  setTimeout(()=>{ if(canShowInstall()){ $('install-banner').classList.add('show'); }},1200);
+});
+
+$('btn-install-accept').addEventListener('click',async()=>{
+  if(!deferredPrompt){showToast('ℹ️ Buka di Chrome/Edge untuk install PWA');return;}
+  deferredPrompt.prompt();
+  const c=await deferredPrompt.userChoice;
+  deferredPrompt=null;$('install-banner').classList.remove('show');
+  if(c.outcome==='accepted')showToast('🎉 Aplikasi berhasil dipasang!');
+});
+
+$('btn-install-dismiss').addEventListener('click',()=>{
+  $('install-banner').classList.remove('show');
+  localStorage.setItem('pwa-dis-ts',Date.now().toString());
+});
+
+window.addEventListener('appinstalled',()=>{
+  $('install-banner').classList.remove('show');
+  deferredPrompt=null;
+  showToast('🎉 APD Monitor berhasil dipasang!');
+});
+
+if(window.matchMedia('(display-mode:standalone)').matches||navigator.standalone===true){
+  setTimeout(()=>{const b=$('install-banner');if(b)b.style.display='none';},100);
+}
 async function init(){
   showLoading('Menginisialisasi dashboard…');
   try{populateUnitDropdowns();populateYearDropdown();$('in-tanggal').value=new Date().toISOString().slice(0,10);await loadMaster();await loadDashboard();await loadLaporan();}
