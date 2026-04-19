@@ -1,17 +1,15 @@
 // ============================================================
 // SERVICE WORKER — APD Monitor PWA
 // ============================================================
-const CACHE_NAME    = 'apd-monitor-v1';
+const CACHE_NAME    = 'apd-monitor-v2';
 const API_ORIGIN    = 'https://script.google.com';
 
+// Hanya cache file LOKAL — external URL bisa gagal dan blokir SW install
 const STATIC_ASSETS = [
-  './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
 ];
 
 // ── INSTALL: cache static assets ────────────────────────────
@@ -19,7 +17,10 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('[SW] Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
+      // Gunakan Promise.allSettled agar satu asset gagal tidak blokir SW
+      return Promise.allSettled(
+        STATIC_ASSETS.map(url => cache.add(url).catch(e => console.warn('[SW] Cache miss:', url, e)))
+      );
     }).then(() => self.skipWaiting())
   );
 });
