@@ -172,6 +172,7 @@
     <div class="topbar-title"><h1 id="page-title">Dashboard</h1><p id="page-sub">Ringkasan kepatuhan penggunaan APD</p></div>
     <div class="topbar-actions">
       <button class="btn btn-outline btn-sm" id="btn-refresh">🔄 Sinkron</button>
+      <button class="btn btn-success btn-sm" id="btn-topbar-install" style="display:none">📲 Install App</button>
       <button class="btn btn-primary btn-sm" id="btn-tambah" style="display:none">➕ Tambah</button>
     </div>
   </div>
@@ -723,76 +724,97 @@ $('btn-simpan').addEventListener('click',async()=>{
 $('btn-reset-form').addEventListener('click',resetForm);
 function resetForm(){['in-waktu','in-unit','in-keterangan'].forEach(id=>$(id).value='');['in-profesi','in-area','in-tindakan','in-status'].forEach(id=>$(id).value='');$('apd-checklist').innerHTML='';$('in-tanggal').value=new Date().toISOString().slice(0,10);}
 $('btn-refresh').addEventListener('click',async()=>{showLoading('Menyinkronkan data…');try{await Promise.all([loadMaster(),loadDashboard(dashFilters),loadLaporan()]);showToast('✅ Data berhasil disinkronkan');}catch(e){showToast('❌ '+e.message);}hideLoading();});
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn(e)));
+if('serviceWorker' in navigator){
+  window.addEventListener('load', async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('sw.js');
+      // Force update SW setiap buka halaman
+      reg.update();
+      console.log('[SW] Registered & updated:', reg.scope);
+    } catch(e) {
+      console.warn('[SW] Register failed:', e);
+    }
+  });
+}
 // ── PWA INSTALL ──
 // ── PWA INSTALL ──────────────────────────────────────────
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
-// Cek apakah user sudah pilih "Nanti" — simpan timestamp, cek tiap 1 jam
-function shouldShowBanner(){
-  if(isStandalone) return false;
-  const snoozed = parseInt(localStorage.getItem('pwa-snooze')||'0');
-  return Date.now() > snoozed; // muncul lagi kalau sudah lewat snooze time
+// Snooze: kalau user pilih "Nanti", banner tidak muncul selama 1 jam
+function isSnoozed(){
+  const t = parseInt(localStorage.getItem('pwa-snooze') || '0');
+  return Date.now() < t;
 }
 
-function hideBanner(){
+function showInstallButtons(){
+  if(isStandalone) return;
+  // Banner atas
+  if(!isSnoozed()) $('install-banner').classList.add('show');
+  // Tombol topbar
+  const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'inline-flex';
+  // Tombol sidebar
+  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex';
+}
+
+function hideInstallButtons(){
   $('install-banner').classList.remove('show');
+  const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'none';
+  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'none';
 }
 
-function showBanner(){
-  if(shouldShowBanner()){
-    $('install-banner').classList.add('show');
-    const sb=$('sidebar-install-btn'); if(sb) sb.style.display='flex';
+async function doInstall(){
+  if(!deferredPrompt) return;
+  $('install-banner').classList.remove('show');
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  if(outcome === 'accepted'){
+    hideInstallButtons();
+    showToast('🎉 Aplikasi berhasil dipasang!');
+  } else {
+    showToast('Install dibatalkan');
   }
 }
 
+// Event utama dari browser
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  showBanner();
+  console.log('[PWA] ✅ Install prompt ready');
+  showInstallButtons();
 });
 
-// Tombol "Pasang Sekarang"
-$('btn-install-accept').addEventListener('click', async () => {
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  hideBanner();
-  const sb=$('sidebar-install-btn'); if(sb) sb.style.display='none';
-  if(outcome==='accepted') showToast('🎉 Aplikasi berhasil dipasang!');
-});
+// Tombol Pasang Sekarang
+$('btn-install-accept').addEventListener('click', doInstall);
 
-// Tombol "Nanti" — snooze 1 jam, banner muncul lagi next visit setelah 1 jam
-$('btn-install-later').addEventListener('click', () => {
-  hideBanner();
-  localStorage.setItem('pwa-snooze', (Date.now() + 60*60*1000).toString()); // snooze 1 jam
-  showToast('🔔 Akan diingatkan lagi nanti');
-});
-
-// Tombol ✕ — tutup saja sesi ini, muncul lagi next visit
-$('btn-install-dismiss').addEventListener('click', hideBanner);
+// Tombol di topbar
+const tbInstall = $('btn-topbar-install');
+if(tbInstall) tbInstall.addEventListener('click', doInstall);
 
 // Tombol di sidebar
-const sbtn = $('sidebar-install-btn');
-if(sbtn) sbtn.addEventListener('click', async () => {
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  hideBanner();
-  sbtn.style.display='none';
-  if(outcome==='accepted') showToast('🎉 Aplikasi berhasil dipasang!');
+const sbInstall = $('sidebar-install-btn');
+if(sbInstall) sbInstall.addEventListener('click', doInstall);
+
+// Tombol Nanti — snooze 1 jam, banner sembunyi tapi tombol topbar/sidebar tetap ada
+$('btn-install-later').addEventListener('click', () => {
+  $('install-banner').classList.remove('show');
+  localStorage.setItem('pwa-snooze', (Date.now() + 60 * 60 * 1000).toString());
+  showToast('🔔 Akan diingatkan lagi dalam 1 jam');
 });
 
-// Setelah berhasil install
+// Tombol ✕ — tutup banner sesi ini saja
+$('btn-install-dismiss').addEventListener('click', () => {
+  $('install-banner').classList.remove('show');
+});
+
+// Setelah install berhasil
 window.addEventListener('appinstalled', () => {
-  hideBanner();
-  const sb=$('sidebar-install-btn'); if(sb) sb.style.display='none';
+  hideInstallButtons();
   deferredPrompt = null;
-  localStorage.removeItem('pwa-snooze'); // hapus snooze, sudah install
+  localStorage.removeItem('pwa-snooze');
   showToast('🎉 APD Monitor berhasil dipasang!');
 });
+
 async function init(){
   showLoading('Menginisialisasi dashboard…');
   try{populateUnitDropdowns();populateYearDropdown();$('in-tanggal').value=new Date().toISOString().slice(0,10);await loadMaster();await loadDashboard();await loadLaporan();}
