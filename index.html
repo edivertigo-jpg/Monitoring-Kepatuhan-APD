@@ -138,9 +138,9 @@
 <body>
 
 <div id="install-banner">
-  <span class="bi">📲</span>
-  <div class="bt"><strong>Pasang Aplikasi APD Monitor</strong><small>Akses lebih cepat di HP/Laptop, bisa dipakai offline</small></div>
-  <button class="btn-install" id="btn-install-accept">📥 Pasang Sekarang</button>
+  <span class="bi">📱</span>
+  <div class="bt"><strong>Pasang Aplikasi APD Monitor</strong><small>Akses lebih cepat, bisa dipakai offline</small></div>
+  <button class="btn-install" id="btn-install-accept">Pasang Sekarang</button>
   <button class="btn-later" id="btn-install-later">Nanti</button>
   <button class="btn-close" id="btn-install-dismiss">✕</button>
 </div>
@@ -736,11 +736,11 @@ if('serviceWorker' in navigator){
     }
   });
 }
+// ── PWA INSTALL ──
 // ── PWA INSTALL ──────────────────────────────────────────
 const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
+// Snooze: kalau user pilih "Nanti", banner tidak muncul selama 1 jam
 function isSnoozed(){
   const t = parseInt(localStorage.getItem('pwa-snooze') || '0');
   return Date.now() < t;
@@ -748,105 +748,63 @@ function isSnoozed(){
 
 function showInstallButtons(){
   if(isStandalone) return;
+  // Banner atas
   if(!isSnoozed()) $('install-banner').classList.add('show');
+  // Tombol topbar
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'inline-flex';
+  // Tombol sidebar
   const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex';
 }
 
 function hideInstallButtons(){
   $('install-banner').classList.remove('show');
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'none';
-  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex'; // sidebar tetap tampil
+  const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'none';
 }
 
-// Tampilkan banner & tombol langsung saat halaman dimuat (tidak tunggu browser event)
-if(!isStandalone && !isSnoozed()){
-  // Langsung tampilkan banner
-  setTimeout(() => { $('install-banner').classList.add('show'); }, 800);
-}
-
-// Modal panduan install
-function showIOSInstallModal(){
-  const existing = document.getElementById('ios-install-modal');
+// Modal panduan install manual
+function showInstallGuide(){
+  const existing = document.getElementById('install-guide-modal');
   if(existing){ existing.style.display='flex'; return; }
   const modal = document.createElement('div');
-  modal.id = 'ios-install-modal';
+  modal.id = 'install-guide-modal';
   modal.className = 'modal-backdrop open';
   modal.style.zIndex = '9999';
-
   const isAndroid = /android/i.test(navigator.userAgent);
-  const isChrome = /chrome/i.test(navigator.userAgent) && !/edg/i.test(navigator.userAgent);
+  const isIOS2 = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const isEdge = /edg/i.test(navigator.userAgent);
-
-  let steps = '';
-  let subtitle = '';
-
-  if(isIOS && isSafari){
-    subtitle = 'Langkah di <strong>iPhone/iPad (Safari)</strong>:';
-    steps = `
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
-        <div><strong>Ketuk tombol Share ⎋</strong><br><span style="font-size:.8rem;color:var(--muted)">Tombol di bawah tengah layar Safari (kotak dengan panah ke atas)</span></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
-        <div><strong>Gulir & pilih "Add to Home Screen"</strong><br><span style="font-size:.8rem;color:var(--muted)">Cari di daftar opsi Share Sheet</span></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">3️⃣</span>
-        <div><strong>Ketuk "Add" di pojok kanan atas</strong><br><span style="font-size:.8rem;color:var(--muted)">Aplikasi akan muncul di layar utama HP</span></div>
-      </div>`;
-  } else if(isAndroid && isChrome){
-    subtitle = 'Langkah di <strong>Android (Chrome)</strong>:';
-    steps = `
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
-        <div><strong>Ketuk ⋮ (tiga titik) kanan atas Chrome</strong><br><span style="font-size:.8rem;color:var(--muted)">Pojok kanan atas browser</span></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
-        <div><strong>Pilih "Install app" / "Add to Home screen"</strong><br><span style="font-size:.8rem;color:var(--muted)">Mungkin bernama "Tambahkan ke layar utama"</span></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">3️⃣</span>
-        <div><strong>Ketuk "Install" / "Pasang"</strong><br><span style="font-size:.8rem;color:var(--muted)">Ikon APD Monitor akan muncul di layar utama</span></div>
-      </div>`;
+  function row(n,t,d){ return '<div style="display:flex;gap:12px;padding:11px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd;margin-bottom:8px"><b style="flex-shrink:0;min-width:22px">'+n+'.</b><div><b>'+t+'</b>'+(d?'<br><small style="color:#64748b">'+d+'</small>':'')+'</div></div>'; }
+  let title='', body='';
+  if(isIOS2){
+    title='Pasang di iPhone/iPad';
+    body=row(1,'Ketuk tombol Share (kotak+panah) di Safari','Di bagian bawah layar browser Safari')
+        +row(2,'Gulir & pilih "Add to Home Screen"','Tambahkan ke Layar Utama')
+        +row(3,'Ketuk "Add" di kanan atas','Ikon APD Monitor muncul di Home Screen');
+  } else if(isAndroid){
+    title='Pasang di Android';
+    body=row(1,'Ketuk titik tiga (...) di kanan atas Chrome','Menu browser Chrome')
+        +row(2,'Pilih "Install app" / "Add to Home screen"','Atau: Tambahkan ke layar utama')
+        +row(3,'Ketuk "Install" untuk konfirmasi','Ikon APD Monitor muncul di layar utama');
   } else {
-    // Desktop Chrome / Edge / lainnya
-    const browser = isEdge ? 'Edge' : 'Chrome';
-    subtitle = `Langkah di <strong>Laptop/PC (${browser})</strong>:`;
-    steps = `
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">1️⃣</span>
-        <div><strong>Klik ikon ⊕ di address bar</strong><br><span style="font-size:.8rem;color:var(--muted)">Ada ikon install di pojok kanan address bar (URL bar)</span></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">   atau</span>
-        <div style="font-size:.83rem">Klik <strong>⋮ Menu → Cast, save and share → Install page as app</strong></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f0f9ff;border-radius:10px;border:1.5px solid #bae6fd">
-        <span style="font-size:24px;flex-shrink:0">2️⃣</span>
-        <div><strong>Klik "Install" pada dialog yang muncul</strong><br><span style="font-size:.8rem;color:var(--muted)">APD Monitor akan terbuka sebagai aplikasi terpisah</span></div>
-      </div>`;
+    title='Pasang di Laptop/PC';
+    body=row(1,'Klik ikon install (+) di address bar','Ada di pojok kanan address bar Chrome/Edge')
+        +'<p style="text-align:center;margin:4px 0;font-size:.8rem;color:#64748b">— atau —</p>'
+        +row('','Klik menu (...) > Cast, save and share > <b>Install page as app</b>','')
+        +row(2,'Klik "Install" pada dialog yang muncul','APD Monitor terbuka sebagai aplikasi terpisah');
   }
-
-  modal.innerHTML = \`
-    <div class="modal" style="max-width:420px">
-      <div class="modal-header">
-        <div class="modal-title">📲 Cara Pasang APD Monitor</div>
-        <button class="modal-close" onclick="document.getElementById('ios-install-modal').style.display='none'">✕</button>
-      </div>
-      <p style="font-size:.83rem;color:var(--muted);margin-bottom:14px">\${subtitle}</p>
-      <div style="display:flex;flex-direction:column;gap:10px">\${steps}</div>
-      <div style="margin-top:18px;padding:10px 14px;background:#fef9c3;border-radius:8px;font-size:.78rem;color:#854d0e">
-        💡 <strong>Tips:</strong> Setelah dipasang, buka APD Monitor dari layar utama HP atau shortcut desktop untuk pengalaman terbaik.
-      </div>
-      <div style="margin-top:16px;text-align:right">
-        <button class="btn btn-primary" onclick="document.getElementById('ios-install-modal').style.display='none'">✓ Mengerti</button>
-      </div>
-    </div>\`;
+  var closeCmd = "document.getElementById('install-guide-modal').style.display='none'";
+  modal.innerHTML = '<div class="modal" style="max-width:420px">'
+    +'<div class="modal-header"><div class="modal-title">Cara Pasang APD Monitor</div>'
+    +'<button class="modal-close" onclick="'+closeCmd+'">X</button></div>'
+    +'<p style="font-size:.83rem;color:var(--muted);margin-bottom:12px"><b>'+title+'</b></p>'
+    +body
+    +'<div style="margin-top:14px;padding:10px 14px;background:#fef9c3;border-radius:8px;font-size:.78rem;color:#854d0e">'
+    +'<b>Tips:</b> Setelah terpasang, buka langsung dari layar utama HP atau desktop PC.</div>'
+    +'<div style="margin-top:14px;text-align:right">'
+    +'<button class="btn btn-primary" onclick="'+closeCmd+'">Mengerti</button>'
+    +'</div></div>';
   document.body.appendChild(modal);
-  modal.addEventListener('click', e => { if(e.target===modal) modal.style.display='none'; });
+  modal.addEventListener('click', function(e){ if(e.target===modal) modal.style.display='none'; });
 }
 
 async function doInstall(){
@@ -854,34 +812,33 @@ async function doInstall(){
     $('install-banner').classList.remove('show');
     try {
       deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+      const res = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      if(outcome === 'accepted'){
+      if(res.outcome === 'accepted'){
         hideInstallButtons();
-        showToast('🎉 Aplikasi berhasil dipasang!');
+        showToast('Aplikasi berhasil dipasang!');
       } else {
-        showToast('Install dibatalkan. Bisa install manual lewat menu browser.');
-        showIOSInstallModal();
+        showInstallGuide();
       }
-    } catch(e) {
-      deferredPrompt = null;
-      showIOSInstallModal();
-    }
+    } catch(err){ showInstallGuide(); }
   } else {
-    // Tampilkan panduan manual untuk semua perangkat
-    showIOSInstallModal();
+    showInstallGuide();
   }
 }
 
-// Event utama dari browser (Chrome/Edge/Android)
+// Event dari browser Chrome/Edge/Android
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log('[PWA] ✅ Native install prompt tersedia!');
-  // Update tombol install agar langsung trigger native prompt
+  if(!isStandalone && !isSnoozed()) $('install-banner').classList.add('show');
 });
 
-// Tombol Pasang Sekarang
+// Tampilkan banner otomatis saat load (tidak nunggu browser event)
+if(!isStandalone && !isSnoozed()){
+  setTimeout(function(){ $('install-banner').classList.add('show'); }, 800);
+}
+
+// Tombol Pasang Sekarang (banner)
 $('btn-install-accept').addEventListener('click', doInstall);
 
 // Tombol di topbar
@@ -892,24 +849,24 @@ if(tbInstall) tbInstall.addEventListener('click', doInstall);
 const sbInstall = $('sidebar-install-btn');
 if(sbInstall) sbInstall.addEventListener('click', doInstall);
 
-// Tombol Nanti — snooze 1 jam
-$('btn-install-later').addEventListener('click', () => {
+// Tombol Nanti
+$('btn-install-later').addEventListener('click', function(){
   $('install-banner').classList.remove('show');
-  localStorage.setItem('pwa-snooze', (Date.now() + 60 * 60 * 1000).toString());
-  showToast('🔔 Akan diingatkan lagi dalam 1 jam');
+  localStorage.setItem('pwa-snooze', String(Date.now() + 60*60*1000));
+  showToast('Akan diingatkan lagi dalam 1 jam');
 });
 
-// Tombol ✕ — tutup banner sesi ini saja
-$('btn-install-dismiss').addEventListener('click', () => {
+// Tombol X
+$('btn-install-dismiss').addEventListener('click', function(){
   $('install-banner').classList.remove('show');
 });
 
 // Setelah install berhasil
-window.addEventListener('appinstalled', () => {
+window.addEventListener('appinstalled', function(){
   hideInstallButtons();
   deferredPrompt = null;
   localStorage.removeItem('pwa-snooze');
-  showToast('🎉 APD Monitor berhasil dipasang!');
+  showToast('APD Monitor berhasil dipasang!');
 });
 
 async function init(){
