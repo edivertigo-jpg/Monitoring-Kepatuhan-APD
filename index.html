@@ -160,7 +160,7 @@
   <div class="sidebar-footer">
     <div style="color:rgba(255,255,255,.55);font-size:.75rem;font-weight:600"><span class="sync-dot"></span>Google Sheets</div>
     <div id="last-sync" style="color:rgba(255,255,255,.4);font-size:.72rem;margin-top:3px">—</div>
-    <button id="sidebar-install-btn" style="display:flex;justify-content:center;margin-top:10px;width:100%;background:var(--mint);color:var(--navy);border:none;padding:8px 12px;border-radius:8px;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:7px;">
+    <button id="sidebar-install-btn" style="display:none;justify-content:center;margin-top:10px;width:100%;background:var(--mint);color:var(--navy);border:none;padding:8px 12px;border-radius:8px;font-family:inherit;font-size:.78rem;font-weight:700;cursor:pointer;align-items:center;gap:7px;">
       📲 Pasang di Perangkat
     </button>
   </div>
@@ -172,7 +172,7 @@
     <div class="topbar-title"><h1 id="page-title">Dashboard</h1><p id="page-sub">Ringkasan kepatuhan penggunaan APD</p></div>
     <div class="topbar-actions">
       <button class="btn btn-outline btn-sm" id="btn-refresh">🔄 Sinkron</button>
-      <button class="btn btn-success btn-sm" id="btn-topbar-install" style="display:inline-flex">📲 Install App</button>
+      <button class="btn btn-success btn-sm" id="btn-topbar-install" style="display:none">📲 Install App</button>
       <button class="btn btn-primary btn-sm" id="btn-tambah" style="display:none">➕ Tambah</button>
     </div>
   </div>
@@ -747,12 +747,9 @@ function isSnoozed(){
 }
 
 function showInstallButtons(){
-  if(isStandalone) return;
-  // Banner atas
+  if(isStandalone) return; // sudah terinstall, jangan tampilkan
   if(!isSnoozed()) $('install-banner').classList.add('show');
-  // Tombol topbar
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'inline-flex';
-  // Tombol sidebar
   const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'flex';
 }
 
@@ -760,6 +757,16 @@ function hideInstallButtons(){
   $('install-banner').classList.remove('show');
   const tb = $('btn-topbar-install'); if(tb) tb.style.display = 'none';
   const sb = $('sidebar-install-btn'); if(sb) sb.style.display = 'none';
+}
+
+// Sembunyikan semua tombol install jika sudah standalone (sudah terinstall)
+if(isStandalone){
+  document.addEventListener('DOMContentLoaded', function(){
+    var tb = document.getElementById('btn-topbar-install');
+    var sb = document.getElementById('sidebar-install-btn');
+    if(tb) tb.style.display = 'none';
+    if(sb) sb.style.display = 'none';
+  });
 }
 
 // Modal panduan install manual
@@ -833,9 +840,18 @@ window.addEventListener('beforeinstallprompt', e => {
   if(!isStandalone && !isSnoozed()) $('install-banner').classList.add('show');
 });
 
-// Tampilkan banner otomatis saat load (tidak nunggu browser event)
-if(!isStandalone && !isSnoozed()){
-  setTimeout(function(){ $('install-banner').classList.add('show'); }, 800);
+// Tampilkan tombol install hanya jika belum standalone & ada beforeinstallprompt
+// Banner/tombol muncul saat beforeinstallprompt ter-trigger saja
+if(isStandalone){
+  // Sudah terinstall - pastikan semua tombol install tersembunyi
+  setTimeout(function(){
+    var tb = document.getElementById('btn-topbar-install');
+    var sb = document.getElementById('sidebar-install-btn');
+    var bn = document.getElementById('install-banner');
+    if(tb) tb.style.display = 'none';
+    if(sb) sb.style.display = 'none';
+    if(bn) bn.classList.remove('show');
+  }, 100);
 }
 
 // Tombol Pasang Sekarang (banner)
