@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard APD Monitor</title>
+  <meta name="description" content="Dashboard Pemantauan Kepatuhan APD Rumah Sakit"/>
+  <meta name="theme-color" content="#0f4c75"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --navy:    #0f4c75;
+      --blue:    #1b6ca8;
+      --sky:     #1e90ff;
+      --teal:    #00b4d8;
+      --mint:    #00d4aa;
+      --red:     #e63946;
+      --orange:  #f4a261;
+      --yellow:  #ffd166;
+      --green:   #06d6a0;
+      --white:   #ffffff;
+      --bg:      #f0f4f8;
+      --card:    #ffffff;
+      --border:  #dde3ed;
+      --text:    #1a2332;
+      --muted:   #64748b;
+      --shadow:  0 2px 12px rgba(15,76,117,.10);
+      --radius:  14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── INSTALL BANNER ── */
+    #install-banner {
+      display: none;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      color: #fff;
+      padding: 14px 20px;
+      align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+      animation: slideDown .4s ease;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner .banner-icon { font-size: 26px; }
+    #install-banner .banner-text { flex: 1; }
+    #install-banner .banner-text strong { display: block; font-size: .95rem; }
+    #install-banner .banner-text small { font-size: .78rem; opacity: .85; }
+    #install-banner .btn-install {
+      background: var(--mint); color: var(--navy); border: none;
+      padding: 8px 18px; border-radius: 20px; font-weight: 700;
+      font-size: .85rem; cursor: pointer; white-space: nowrap;
+      transition: transform .15s;
+    }
+    #install-banner .btn-install:hover { transform: scale(1.04); }
+    #install-banner .btn-close {
+      background: none; border: none; color: #fff;
+      font-size: 20px; cursor: pointer; padding: 4px; opacity: .7;
+    }
+    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: 240px; background: var(--navy);
+      display: flex; flex-direction: column;
+      padding: 24px 0; z-index: 100;
+      transition: transform .3s;
+    }
+    .sidebar-logo {
+      padding: 0 20px 24px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .sidebar-logo .logo-icon {
+      width: 42px; height: 42px; background: var(--mint);
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 22px; margin-bottom: 10px;
+    }
+    .sidebar-logo h2 {
+      color: #fff; font-size: .95rem; font-weight: 700; line-height: 1.3;
+    }
+    .sidebar-logo p { color: rgba(255,255,255,.5); font-size: .72rem; margin-top: 2px; }
+
+    .nav-group { padding: 16px 12px 0; }
+    .nav-label {
+      font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+      color: rgba(255,255,255,.35); text-transform: uppercase;
+      padding: 0 8px; margin-bottom: 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      color: rgba(255,255,255,.65); font-size: .85rem; font-weight: 500;
+      cursor: pointer; transition: all .2s; margin-bottom: 2px;
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-item.active { background: var(--sky); color: #fff; font-weight: 600; }
+    .nav-item .icon { font-size: 17px; width: 22px; text-align: center; }
+
+    .sidebar-footer {
+      margin-top: auto; padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .sync-info { color: rgba(255,255,255,.4); font-size: .72rem; }
+    .sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 5px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: 240px;
+      min-height: 100vh;
+      transition: margin .3s;
+    }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex; align-items: center; gap: 16px;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar .hamburger {
+      display: none; background: none; border: none;
+      font-size: 22px; cursor: pointer; color: var(--text);
+    }
+    .topbar-title { flex: 1; }
+    .topbar-title h1 { font-size: 1.05rem; font-weight: 700; }
+    .topbar-title p { font-size: .75rem; color: var(--muted); }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+    .btn {
+      padding: 8px 16px; border-radius: 8px; border: none;
+      font-family: inherit; font-size: .82rem; font-weight: 600;
+      cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--blue); color: #fff; }
+    .btn-primary:hover { background: var(--navy); }
+    .btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-outline:hover { background: var(--blue); color: #fff; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-sm { padding: 6px 12px; font-size: .78rem; }
+
+    /* ── CONTENT ── */
+    .content { padding: 24px 28px; }
+
+    /* ── LOADING ── */
+    .loading-overlay {
+      position: fixed; inset: 0; background: rgba(240,244,248,.9);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 200;
+    }
+    .spinner {
+      width: 48px; height: 48px; border: 4px solid var(--border);
+      border-top-color: var(--blue); border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-overlay p { margin-top: 14px; color: var(--muted); font-size: .9rem; }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 20px; box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+      transition: transform .2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); }
+    .stat-card .label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .stat-card .value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .stat-card .sub { font-size: .78rem; color: var(--muted); }
+    .stat-card .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 8px; border-radius: 20px; font-size: .72rem; font-weight: 700;
+    }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-red   { background: #fee2e2; color: #991b1b; }
+    .badge-blue  { background: #dbeafe; color: #1e40af; }
+    .badge-yellow{ background: #fef9c3; color: #713f12; }
+
+    /* ── CHART GRID ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card); border-radius: var(--radius);
+      padding: 20px; box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .card-title { font-size: .9rem; font-weight: 700; }
+    .card-sub { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    thead th {
+      background: var(--bg); padding: 10px 14px;
+      text-align: left; font-weight: 700; font-size: .72rem;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+    tbody tr:hover { background: #f8fbff; }
+    tbody td { padding: 10px 14px; vertical-align: middle; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700;
+    }
+    .pill-patuh    { background: #d1fae5; color: #065f46; }
+    .pill-tidak    { background: #fee2e2; color: #991b1b; }
+    .pill-default  { background: #f1f5f9; color: var(--muted); }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-bottom: 16px; align-items: center;
+    }
+    .filter-bar select, .filter-bar input {
+      padding: 8px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: inherit; font-size: .82rem;
+      background: var(--card); color: var(--text); outline: none;
+      transition: border-color .2s;
+    }
+    .filter-bar select:focus, .filter-bar input:focus {
+      border-color: var(--blue);
+    }
+    .filter-bar label { font-size: .78rem; font-weight: 600; color: var(--muted); }
+
+    /* ── FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: .78rem; font-weight: 600; color: var(--muted); }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 9px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-family: inherit; font-size: .85rem;
+      outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--blue);
+    }
+    .form-full { grid-column: 1 / -1; }
+
+    /* ── APD CHECKBOX GRID ── */
+    .apd-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px; padding: 12px 0;
+    }
+    .apd-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 8px;
+      border: 1.5px solid var(--border); cursor: pointer;
+      transition: all .15s; user-select: none; font-size: .82rem;
+    }
+    .apd-item.required { border-color: var(--blue); background: #eff6ff; }
+    .apd-item.checked.required { background: #dbeafe; border-color: var(--sky); }
+    .apd-item input[type=checkbox] { accent-color: var(--blue); width: 15px; height: 15px; }
+    .req-badge {
+      margin-left: auto; font-size: .62rem; padding: 1px 6px;
+      border-radius: 10px; background: var(--blue); color: #fff; font-weight: 700;
+    }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 18px;
+      width: min(680px, 95vw); max-height: 88vh;
+      overflow-y: auto; padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.25);
+      animation: popIn .25s ease;
+    }
+    @keyframes popIn { from{transform:scale(.92);opacity:0} to{transform:scale(1);opacity:1} }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 800; }
+    .modal-close {
+      background: var(--bg); border: none; width: 32px; height: 32px;
+      border-radius: 50%; font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; color: var(--muted);
+    }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 8px 16px; border-radius: 8px; font-size: .82rem;
+      font-weight: 600; cursor: pointer; border: none;
+      background: var(--bg); color: var(--muted); transition: all .2s;
+    }
+    .tab.active { background: var(--blue); color: #fff; }
+
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── MASTER TABLE ── */
+    .apd-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; background: var(--green);
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .progress-label { font-size: .78rem; font-weight: 500; width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .progress-bar-wrap { flex: 1; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 5px; transition: width .8s ease; }
+    .progress-pct { font-size: .75rem; font-weight: 700; width: 40px; text-align: right; font-family: 'DM Mono', monospace; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 48px 20px; color: var(--muted);
+    }
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state p { font-size: .9rem; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      background: var(--navy); color: #fff;
+      padding: 12px 20px; border-radius: 10px; font-size: .85rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      transform: translateY(80px); opacity: 0;
+      transition: all .3s; pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; }
+      .topbar .hamburger { display: block; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .content { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── INSTALL BANNER ── -->
+<div id="install-banner">
+  <span class="banner-icon">📱</span>
+  <div class="banner-text">
+    <strong>Pasang Aplikasi APD Monitor</strong>
+    <small>Akses lebih cepat, bisa dipakai offline</small>
+  </div>
+  <button class="btn-install" id="btn-install-accept">Pasang</button>
+  <button class="btn-close" id="btn-install-dismiss">✕</button>
+</div>
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🛡️</div>
+    <h2>APD Monitor</h2>
+    <p>Pemantauan Kepatuhan</p>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-label">Menu Utama</div>
+    <button class="nav-item active" data-view="dashboard">
+      <span class="icon">📊</span> Dashboard
+    </button>
+    <button class="nav-item" data-view="laporan">
+      <span class="icon">📋</span> Data Laporan
+    </button>
+    <button class="nav-item" data-view="input">
+      <span class="icon">➕</span> Input Observasi
+    </button>
+    <button class="nav-item" data-view="master">
+      <span class="icon">📚</span> Standar APD
+    </button>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="sync-info">
+      <span class="sync-dot"></span>
+      Tersambung ke Google Sheets
+    </div>
+    <div id="last-sync" class="sync-info" style="margin-top:5px;">—</div>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <button class="hamburger" id="hamburger">☰</button>
+    <div class="topbar-title">
+      <h1 id="page-title">Dashboard</h1>
+      <p id="page-sub">Ringkasan kepatuhan penggunaan APD</p>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" id="btn-refresh">🔄 Sinkron</button>
+      <button class="btn btn-primary btn-sm" id="btn-tambah" style="display:none">➕ Tambah</button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ══ VIEW: DASHBOARD ══ -->
+    <div class="view active" id="view-dashboard">
+
+      <!-- Stats -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="label">Total Observasi</div>
+          <div class="value" id="stat-total" style="color:var(--blue)">—</div>
+          <div class="sub">Semua periode</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Kepatuhan</div>
+          <div class="value" id="stat-persen" style="color:var(--green)">—</div>
+          <div class="sub"><span id="stat-patuh">—</span> observasi patuh</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Tidak Patuh</div>
+          <div class="value" id="stat-tidak" style="color:var(--red)">—</div>
+          <div class="sub">Perlu perbaikan</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Unit Aktif</div>
+          <div class="value" id="stat-unit" style="color:var(--orange)">—</div>
+          <div class="sub">Unit tercatat</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="charts-grid">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Tren Kepatuhan Bulanan</div>
+              <div class="card-sub">Persentase kepatuhan per bulan</div>
+            </div>
+          </div>
+          <canvas id="chart-trend" height="200"></canvas>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Status Kepatuhan</div>
+              <div class="card-sub">Distribusi patuh / tidak patuh</div>
+            </div>
+          </div>
+          <canvas id="chart-donut" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- Kepatuhan per Area -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Kepatuhan per Area</div>
+            <div class="card-sub">Persentase kepatuhan berdasarkan area tindakan</div>
+          </div>
+        </div>
+        <div id="area-progress"></div>
+      </div>
+
+      <!-- Kepatuhan per Unit -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Kepatuhan per Unit</div>
+            <div class="card-sub">10 unit dengan data terbanyak</div>
+          </div>
+        </div>
+        <canvas id="chart-unit" height="220"></canvas>
+      </div>
+
+    </div><!-- /dashboard -->
+
+    <!-- ══ VIEW: LAPORAN ══ -->
+    <div class="view" id="view-laporan">
+      <div class="filter-bar">
+        <div>
+          <label>Tanggal Dari</label><br>
+          <input type="date" id="f-date-from"/>
+        </div>
+        <div>
+          <label>Tanggal Sampai</label><br>
+          <input type="date" id="f-date-to"/>
+        </div>
+        <div>
+          <label>Unit</label><br>
+          <input type="text" id="f-unit" placeholder="Cari unit…" style="width:130px"/>
+        </div>
+        <div>
+          <label>Area</label><br>
+          <select id="f-area">
+            <option value="">Semua Area</option>
+            <option>Perawatan NON ISO</option>
+            <option>Perawatan ISO</option>
+            <option>CSSD</option>
+            <option>GIZI</option>
+            <option>LAUNDRY</option>
+          </select>
+        </div>
+        <div>
+          <label>Status</label><br>
+          <select id="f-status">
+            <option value="">Semua</option>
+            <option value="patuh">Patuh</option>
+            <option value="tidak patuh">Tidak Patuh</option>
+          </select>
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn btn-primary" id="btn-filter">🔍 Filter</button>
+        </div>
+        <div style="align-self:flex-end">
+          <button class="btn btn-outline" id="btn-reset-filter">✕ Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Data Laporan Observasi</div>
+            <div class="card-sub" id="laporan-count">— data ditemukan</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th><th>Tanggal</th><th>Profesi</th><th>Unit</th>
+                <th>Area</th><th>Jenis Tindakan</th><th>Status</th>
+                <th>Keterangan</th><th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="laporan-tbody"></tbody>
+          </table>
+        </div>
+        <div id="laporan-empty" class="empty-state" style="display:none">
+          <div class="emoji">📭</div>
+          <p>Belum ada data laporan.<br>Mulai input observasi dengan klik ➕ Tambah.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: INPUT ══ -->
+    <div class="view" id="view-input">
+      <div class="card" style="max-width:760px">
+        <div class="card-header">
+          <div class="card-title">Form Input Observasi APD</div>
+        </div>
+        <div class="form-grid" id="input-form">
+
+          <div class="form-group">
+            <label>Tanggal *</label>
+            <input type="date" id="in-tanggal"/>
+          </div>
+          <div class="form-group">
+            <label>Waktu *</label>
+            <input type="time" id="in-waktu"/>
+          </div>
+          <div class="form-group">
+            <label>Profesi *</label>
+            <select id="in-profesi">
+              <option value="">— Pilih —</option>
+              <option>Dokter</option>
+              <option>Perawat</option>
+              <option>Bidan</option>
+              <option>Ahli Gizi</option>
+              <option>Tenaga CSSD</option>
+              <option>Tenaga Laundry</option>
+              <option>Tenaga Kebersihan</option>
+              <option>Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Unit *</label>
+            <input type="text" id="in-unit" placeholder="Contoh: IGD, ICU, Melati…"/>
+          </div>
+          <div class="form-group">
+            <label>Area *</label>
+            <select id="in-area">
+              <option value="">— Pilih —</option>
+              <option>Perawatan NON ISO</option>
+              <option>Perawatan ISO</option>
+              <option>CSSD</option>
+              <option>GIZI</option>
+              <option>LAUNDRY</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Jenis Tindakan *</label>
+            <select id="in-tindakan">
+              <option value="">— Pilih Area dulu —</option>
+            </select>
+          </div>
+
+          <div class="form-full">
+            <label style="font-size:.78rem;font-weight:600;color:var(--muted);display:block;margin-bottom:8px">
+              APD yang Digunakan <span style="font-size:.7rem;color:var(--blue)">(🔵 = wajib sesuai standar)</span>
+            </label>
+            <div class="apd-grid" id="apd-checklist">
+              <!-- Diisi JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Status Kepatuhan *</label>
+            <select id="in-status">
+              <option value="">— Otomatis / Manual —</option>
+              <option value="Patuh">Patuh</option>
+              <option value="Tidak Patuh">Tidak Patuh</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Keterangan</label>
+            <input type="text" id="in-keterangan" placeholder="Catatan tambahan…"/>
+          </div>
+
+          <div class="form-full" style="display:flex;gap:10px;justify-content:flex-end;padding-top:8px">
+            <button class="btn btn-outline" id="btn-reset-form">Reset</button>
+            <button class="btn btn-primary" id="btn-simpan">💾 Simpan Observasi</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: MASTER ══ -->
+    <div class="view" id="view-master">
+      <div class="tabs" id="master-tabs"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" id="master-area-title">Standar APD</div>
+          <div class="card-sub" id="master-count"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>No</th><th>Jenis Tindakan</th>
+                <th>ST Pem</th><th>ST Bedah</th><th>ST RT</th>
+                <th>M.Bedah</th><th>N95</th><th>Google</th><th>Faceshield</th>
+                <th>Gaun</th><th>Celemek</th><th>Apron</th><th>Topi</th>
+                <th>Boots</th><th>Sepatu</th>
+              </tr>
+            </thead>
+            <tbody id="master-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ── MODAL DETAIL ── -->
+<div class="modal-backdrop" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Detail Observasi</div>
+      <button class="modal-close" id="modal-close-detail">✕</button>
+    </div>
+    <div id="modal-detail-body"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-danger btn-sm" id="btn-hapus-modal">🗑 Hapus</button>
+      <button class="btn btn-outline btn-sm" id="modal-close-detail2">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOADING ── -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <p id="loading-text">Memuat data…</p>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbx7PFp7W30YYIOcdPBwGFuTGJU7hJLyMkdwil4_6NXOcA4-L2slbRJA2d9q53piK9ek7w/exec';
+
+const APD_COLS = [
+  { key: 'Sarung Tangan Pemeriksaan', label: 'ST Pemeriksaan',  mKey: 'Pemeriksaan'       },
+  { key: 'Sarung Tangan Bedah/Steril',label: 'ST Bedah/Steril', mKey: 'Bedah/Steril'      },
+  { key: 'Sarung Tangan Rumah Tangga',label: 'ST Rumah Tangga', mKey: 'Rumah Tangga'      },
+  { key: 'Masker Bedah',              label: 'Masker Bedah',    mKey: 'Bedah'             },
+  { key: 'Masker Respiratorik/N95',   label: 'Masker N95',      mKey: 'Respiratorik/N95'  },
+  { key: 'Google',                    label: 'Kacamata (Google)',mKey: 'Google'            },
+  { key: 'Faceshiled',                label: 'Faceshield',      mKey: 'Faceshiled'        },
+  { key: 'Gaun ',                     label: 'Gaun',            mKey: 'Gaun '             },
+  { key: 'Celemek',                   label: 'Celemek',         mKey: 'Celemek'           },
+  { key: 'Apron',                     label: 'Apron',           mKey: 'Apron'             },
+  { key: 'Topi',                      label: 'Topi',            mKey: 'Topi'              },
+  { key: 'Sepatu Boots',              label: 'Sepatu Boots',    mKey: 'Sepatu Boots'      },
+  { key: 'Sepatu Kerja',              label: 'Sepatu Kerja',    mKey: 'Sepatu Kerja'      },
+];
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let masterData   = null;
+let summaryData  = null;
+let laporanData  = null;
+let currentView  = 'dashboard';
+let currentDetailRow = null;
+let deferredPrompt = null;
+
+let chartTrend = null, chartDonut = null, chartUnit = null;
+
+// ════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const fmtDate = d => {
+  if (!d) return '—';
+  const dd = new Date(d);
+  return isNaN(dd) ? d : dd.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+};
+function showToast(msg, dur=3000) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+function showLoading(txt='Memuat data…') {
+  $('loading-text').textContent = txt; $('loading').style.display='flex';
+}
+function hideLoading() { $('loading').style.display='none'; }
+
+async function api(params={}, method='GET', body=null) {
+  const qs = new URLSearchParams(params).toString();
+  const url = API_URL + (qs ? '?'+qs : '');
+  const opts = { method };
+  if (body) {
+    opts.method = 'POST';
+    opts.body = JSON.stringify(body);
+  }
+  const res  = await fetch(url, opts);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+const viewMeta = {
+  dashboard: { title:'Dashboard',       sub:'Ringkasan kepatuhan penggunaan APD',     tambah:false },
+  laporan:   { title:'Data Laporan',    sub:'Histori seluruh observasi APD',          tambah:true  },
+  input:     { title:'Input Observasi', sub:'Catat penggunaan APD baru',              tambah:false },
+  master:    { title:'Standar APD',     sub:'Panduan APD wajib per tindakan',         tambah:false },
+};
+
+function navigate(view) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  $('view-'+view).classList.add('active');
+  document.querySelector(`[data-view="${view}"]`).classList.add('active');
+  const m = viewMeta[view];
+  $('page-title').textContent = m.title;
+  $('page-sub').textContent   = m.sub;
+  $('btn-tambah').style.display = m.tambah ? 'flex' : 'none';
+  currentView = view;
+  if (window.innerWidth < 900) $('sidebar').classList.remove('open');
+}
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => navigate(btn.dataset.view));
+});
+$('hamburger').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+$('btn-tambah').addEventListener('click', () => navigate('input'));
+
+// ════════════════════════════════════════════════
+// LOAD MASTER
+// ════════════════════════════════════════════════
+async function loadMaster() {
+  masterData = await api({ action: 'getMaster' });
+  renderMasterTabs();
+  renderMasterTable(Object.keys(masterData.byArea)[0]);
+  populateTindakanDropdown();
+}
+
+function renderMasterTabs() {
+  const tabs = $('master-tabs');
+  tabs.innerHTML = '';
+  Object.keys(masterData.byArea).forEach((area, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (i===0?' active':'');
+    btn.textContent = area;
+    btn.addEventListener('click', () => {
+      tabs.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      btn.classList.add('active');
+      renderMasterTable(area);
+    });
+    tabs.appendChild(btn);
+  });
+}
+
+function renderMasterTable(area) {
+  const rows = masterData.byArea[area] || [];
+  $('master-area-title').textContent = 'Standar APD — ' + area;
+  $('master-count').textContent = rows.length + ' jenis tindakan';
+
+  const dot = v => v==='V'
+    ? `<span class="apd-dot" title="Wajib"></span>`
+    : `<span style="color:#cbd5e1;font-size:11px">—</span>`;
+
+  $('master-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted)">${r['No']}</td>
+      <td style="font-weight:500">${r['Jenis Tindakan']}</td>
+      <td style="text-align:center">${dot(r['Pemeriksaan'])}</td>
+      <td style="text-align:center">${dot(r['Bedah/Steril'])}</td>
+      <td style="text-align:center">${dot(r['Rumah Tangga'])}</td>
+      <td style="text-align:center">${dot(r['Bedah'])}</td>
+      <td style="text-align:center">${dot(r['Respiratorik/N95'])}</td>
+      <td style="text-align:center">${dot(r['Google'])}</td>
+      <td style="text-align:center">${dot(r['Faceshiled'])}</td>
+      <td style="text-align:center">${dot(r['Gaun '])}</td>
+      <td style="text-align:center">${dot(r['Celemek'])}</td>
+      <td style="text-align:center">${dot(r['Apron'])}</td>
+      <td style="text-align:center">${dot(r['Topi'])}</td>
+      <td style="text-align:center">${dot(r['Sepatu Boots'])}</td>
+      <td style="text-align:center">${dot(r['Sepatu Kerja'])}</td>
+    </tr>`).join('');
+}
+
+function populateTindakanDropdown() {
+  $('in-area').addEventListener('change', function() {
+    const area  = this.value;
+    const sel   = $('in-tindakan');
+    sel.innerHTML = '<option value="">— Pilih Tindakan —</option>';
+    const rows = masterData?.byArea?.[area] || [];
+    rows.forEach(r => {
+      const o = document.createElement('option');
+      o.value = o.textContent = r['Jenis Tindakan'];
+      sel.appendChild(o);
+    });
+    renderAPDChecklist(area, '');
+  });
+
+  $('in-tindakan').addEventListener('change', function() {
+    const area    = $('in-area').value;
+    const tindakan = this.value;
+    renderAPDChecklist(area, tindakan);
+    autoStatus();
+  });
+}
+
+function renderAPDChecklist(area, tindakan) {
+  const standard = masterData?.rows?.find(r => r['Area']===area && r['Jenis Tindakan']===tindakan);
+  $('apd-checklist').innerHTML = APD_COLS.map(a => {
+    const req = standard && standard[a.mKey] === 'V';
+    return `
+      <label class="apd-item${req?' required':''}" for="chk-${a.key}">
+        <input type="checkbox" id="chk-${a.key}" data-key="${a.key}" onchange="autoStatus()"/>
+        <span>${a.label}</span>
+        ${req?'<span class="req-badge">WAJIB</span>':''}
+      </label>`;
+  }).join('');
+}
+
+function autoStatus() {
+  const area     = $('in-area').value;
+  const tindakan = $('in-tindakan').value;
+  if (!area || !tindakan) return;
+
+  const standard = masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
+  if (!standard) return;
+
+  let allOk = true;
+  APD_COLS.forEach(a => {
+    const req     = standard[a.mKey] === 'V';
+    const checked = document.getElementById('chk-'+a.key)?.checked;
+    if (req && !checked) allOk = false;
+  });
+
+  $('in-status').value = allOk ? 'Patuh' : 'Tidak Patuh';
+}
+
+// ════════════════════════════════════════════════
+// LOAD SUMMARY & DASHBOARD
+// ════════════════════════════════════════════════
+async function loadDashboard() {
+  summaryData = await api({ action: 'getSummary' });
+  renderStats();
+  renderTrendChart();
+  renderDonutChart();
+  renderAreaProgress();
+  renderUnitChart();
+  $('last-sync').textContent = 'Sync: ' + new Date().toLocaleTimeString('id-ID');
+}
+
+function renderStats() {
+  const s = summaryData;
+  $('stat-total').textContent  = s.totalObservasi.toLocaleString('id-ID');
+  $('stat-persen').textContent = s.persentasePatuh + '%';
+  $('stat-patuh').textContent  = s.totalPatuh.toLocaleString('id-ID');
+  $('stat-tidak').textContent  = s.totalTidakPatuh.toLocaleString('id-ID');
+  $('stat-unit').textContent   = Object.keys(s.byUnit).length;
+}
+
+function renderTrendChart() {
+  const s      = summaryData;
+  const months = Object.keys(s.byMonth).sort();
+  const labels = months.map(m => {
+    const [y,mo] = m.split('-');
+    return new Date(y, mo-1).toLocaleDateString('id-ID',{month:'short',year:'2-digit'});
+  });
+  const vals = months.map(m => s.byMonth[m].patuh+s.byMonth[m].tidakPatuh > 0
+    ? Math.round(s.byMonth[m].patuh/(s.byMonth[m].patuh+s.byMonth[m].tidakPatuh)*100) : 0);
+
+  if (chartTrend) chartTrend.destroy();
+  const ctx = $('chart-trend').getContext('2d');
+
+  if (months.length === 0) {
+    ctx.fillStyle = '#94a3b8'; ctx.font = '14px Plus Jakarta Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText('Belum ada data laporan', ctx.canvas.width/2, 80);
+    return;
+  }
+
+  chartTrend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets:[{
+        label:'% Kepatuhan',
+        data: vals,
+        borderColor:'#1b6ca8', backgroundColor:'rgba(27,108,168,.12)',
+        borderWidth: 2.5, pointRadius: 5, pointBackgroundColor:'#1b6ca8',
+        tension: .35, fill: true
+      }]
+    },
+    options:{
+      responsive:true, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'%'}}},
+      scales:{
+        y:{ min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#f1f5f9'}},
+        x:{ grid:{display:false}}
+      }
+    }
+  });
+}
+
+function renderDonutChart() {
+  const s = summaryData;
+  if (chartDonut) chartDonut.destroy();
+  const ctx = $('chart-donut').getContext('2d');
+  chartDonut = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels:['Patuh','Tidak Patuh'],
+      datasets:[{
+        data:[s.totalPatuh, s.totalTidakPatuh],
+        backgroundColor:['#06d6a0','#e63946'],
+        borderWidth: 0
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:12},padding:16}},
+        tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} (${s.totalObservasi>0?Math.round(c.raw/s.totalObservasi*100):0}%)`}}
+      },
+      cutout:'68%'
+    }
+  });
+}
+
+function renderAreaProgress() {
+  const s   = summaryData;
+  const el  = $('area-progress');
+  const areas = Object.entries(s.byArea).sort((a,b)=>b[1].persen-a[1].persen);
+  if (areas.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="emoji">📊</div><p>Belum ada data</p></div>';
+    return;
+  }
+  el.innerHTML = areas.map(([area,d])=>`
+    <div class="progress-row">
+      <div class="progress-label" title="${area}">${area}</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill"
+          style="width:${d.persen}%;background:${d.persen>=80?'var(--green)':d.persen>=60?'var(--yellow)':'var(--red)'}">
+        </div>
+      </div>
+      <div class="progress-pct">${d.persen}%</div>
+      <div style="font-size:.7rem;color:var(--muted);width:50px">${d.total} obs</div>
+    </div>`).join('');
+}
+
+function renderUnitChart() {
+  const s = summaryData;
+  if (chartUnit) chartUnit.destroy();
+
+  const units = Object.entries(s.byUnit)
+    .sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+
+  const ctx = $('chart-unit').getContext('2d');
+  if (units.length === 0) {
+    ctx.fillStyle='#94a3b8'; ctx.font='14px Plus Jakarta Sans';
+    ctx.textAlign='center'; ctx.fillText('Belum ada data', ctx.canvas.width/2, 80);
+    return;
+  }
+
+  chartUnit = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: units.map(u=>u[0]),
+      datasets:[
+        { label:'Patuh',      data: units.map(u=>u[1].patuh),      backgroundColor:'#06d6a0', borderRadius:4 },
+        { label:'Tidak Patuh',data: units.map(u=>u[1].tidakPatuh), backgroundColor:'#e63946', borderRadius:4 }
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ position:'bottom' } },
+      scales:{
+        x:{ stacked:true, grid:{display:false} },
+        y:{ stacked:true, grid:{color:'#f1f5f9'} }
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════
+// LOAD LAPORAN
+// ════════════════════════════════════════════════
+async function loadLaporan(filters={}) {
+  const params = { action:'getLaporan', ...filters };
+  laporanData = await api(params);
+  renderLaporan(laporanData.rows);
+}
+
+function renderLaporan(rows) {
+  $('laporan-count').textContent = rows.length + ' data ditemukan';
+  const tbody = $('laporan-tbody');
+  $('laporan-empty').style.display = rows.length === 0 ? 'block' : 'none';
+
+  if (rows.length === 0) { tbody.innerHTML = ''; return; }
+
+  tbody.innerHTML = rows.map(r => {
+    const s = String(r['Status']||'').toLowerCase();
+    const pill = s==='patuh'   ? 'pill-patuh' :
+                 s.includes('tidak') ? 'pill-tidak' : 'pill-default';
+    return `
+      <tr>
+        <td style="font-family:'DM Mono',monospace;font-size:.75rem">${r['NO']||'—'}</td>
+        <td>${fmtDate(r['Tanggal'])}</td>
+        <td>${r['PROFESI']||'—'}</td>
+        <td>${r['UNIT']||'—'}</td>
+        <td>${r['AREA']||'—'}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r['JENIS TINDAKAN']||'—'}</td>
+        <td><span class="status-pill ${pill}">${r['Status']||'—'}</span></td>
+        <td style="color:var(--muted);font-size:.75rem">${r['Keterangn']||'—'}</td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick='showDetail(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Detail</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function showDetail(row) {
+  currentDetailRow = row;
+  const apd = APD_COLS.map(a =>
+    `<div style="display:flex;align-items:center;gap:6px;padding:4px 0">
+      <span style="color:${row[a.key]==='V'?'var(--green)':'#cbd5e1'}">${row[a.key]==='V'?'✅':'⬜'}</span>
+      <span style="font-size:.82rem">${a.label}</span>
+    </div>`).join('');
+
+  $('modal-detail-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">TANGGAL</div><div>${fmtDate(row['Tanggal'])}</div></div>
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">WAKTU</div><div>${row['WAKTU']||'—'}</div></div>
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">PROFESI</div><div>${row['PROFESI']||'—'}</div></div>
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">UNIT</div><div>${row['UNIT']||'—'}</div></div>
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">AREA</div><div>${row['AREA']||'—'}</div></div>
+      <div><div style="font-size:.7rem;color:var(--muted);font-weight:700">JENIS TINDAKAN</div><div>${row['JENIS TINDAKAN']||'—'}</div></div>
+    </div>
+    <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:8px">APD YANG DIGUNAKAN</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">${apd}</div>
+    <div style="margin-top:14px;padding:10px 14px;border-radius:8px;background:var(--bg)">
+      <span style="font-size:.75rem;font-weight:700;color:var(--muted)">STATUS: </span>
+      <span class="status-pill ${String(row['Status']||'').toLowerCase()==='patuh'?'pill-patuh':'pill-tidak'}">${row['Status']||'—'}</span>
+      ${row['Keterangn'] ? `<div style="margin-top:6px;font-size:.82rem;color:var(--muted)">${row['Keterangn']}</div>`:''}
+    </div>`;
+
+  $('modal-detail').classList.add('open');
+}
+
+$('modal-close-detail').addEventListener('click',  ()=>$('modal-detail').classList.remove('open'));
+$('modal-close-detail2').addEventListener('click', ()=>$('modal-detail').classList.remove('open'));
+$('btn-hapus-modal').addEventListener('click', async () => {
+  if (!currentDetailRow || !confirm('Hapus data ini?')) return;
+  try {
+    showLoading('Menghapus data…');
+    await api({},{}, { action:'deleteLaporan', data:{ _rowIndex: currentDetailRow._rowIndex }});
+    hideLoading();
+    $('modal-detail').classList.remove('open');
+    showToast('✅ Data berhasil dihapus');
+    await loadLaporan();
+    await loadDashboard();
+  } catch(e) { hideLoading(); showToast('❌ '+e.message); }
+});
+
+// Filter
+$('btn-filter').addEventListener('click', () => {
+  const filters = {};
+  if ($('f-date-from').value) filters.dateFrom = $('f-date-from').value;
+  if ($('f-date-to').value)   filters.dateTo   = $('f-date-to').value;
+  if ($('f-unit').value)      filters.unit     = $('f-unit').value;
+  if ($('f-area').value)      filters.area     = $('f-area').value;
+  if ($('f-status').value)    filters.status   = $('f-status').value;
+  showLoading('Memfilter data…');
+  loadLaporan(filters).then(hideLoading).catch(e=>{hideLoading();showToast('❌ '+e.message);});
+});
+$('btn-reset-filter').addEventListener('click', () => {
+  ['f-date-from','f-date-to','f-unit','f-status'].forEach(id=>$(id).value='');
+  $('f-area').value='';
+  loadLaporan();
+});
+
+// ════════════════════════════════════════════════
+// SIMPAN OBSERVASI
+// ════════════════════════════════════════════════
+$('btn-simpan').addEventListener('click', async () => {
+  const tgl    = $('in-tanggal').value;
+  const profesi= $('in-profesi').value;
+  const unit   = $('in-unit').value;
+  const area   = $('in-area').value;
+  const tindakan=$('in-tindakan').value;
+  const status = $('in-status').value;
+
+  if (!tgl||!profesi||!unit||!area||!tindakan||!status) {
+    showToast('⚠️ Lengkapi semua field wajib'); return;
+  }
+
+  const data = {
+    'Tanggal': tgl,
+    'WAKTU'  : $('in-waktu').value,
+    'PROFESI': profesi,
+    'UNIT'   : unit,
+    'AREA'   : area,
+    'JENIS TINDAKAN': tindakan,
+    'Status' : status,
+    'Keterangn': $('in-keterangan').value,
+  };
+
+  APD_COLS.forEach(a => {
+    const el = document.getElementById('chk-'+a.key);
+    data[a.key] = el?.checked ? 'V' : '';
+  });
+
+  try {
+    showLoading('Menyimpan data…');
+    await api({},{}, { action:'addLaporan', data });
+    hideLoading();
+    showToast('✅ Observasi berhasil disimpan!');
+    resetForm();
+    navigate('laporan');
+    await loadLaporan();
+    await loadDashboard();
+  } catch(e) { hideLoading(); showToast('❌ '+e.message); }
+});
+
+$('btn-reset-form').addEventListener('click', resetForm);
+function resetForm() {
+  ['in-tanggal','in-waktu','in-unit','in-keterangan'].forEach(id=>$(id).value='');
+  ['in-profesi','in-area','in-tindakan','in-status'].forEach(id=>$(id).value='');
+  $('apd-checklist').innerHTML='';
+  // Set tanggal hari ini
+  $('in-tanggal').value = new Date().toISOString().slice(0,10);
+}
+
+// ════════════════════════════════════════════════
+// REFRESH
+// ════════════════════════════════════════════════
+$('btn-refresh').addEventListener('click', async () => {
+  showLoading('Menyinkronkan data…');
+  try {
+    await Promise.all([loadMaster(), loadDashboard(), loadLaporan()]);
+    showToast('✅ Data berhasil disinkronkan');
+  } catch(e) { showToast('❌ '+e.message); }
+  hideLoading();
+});
+
+// ════════════════════════════════════════════════
+// PWA — SERVICE WORKER & INSTALL
+// ════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.warn('SW error:', e));
+  });
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Tampilkan banner setelah 2 detik
+  setTimeout(() => {
+    const alreadyDismissed = localStorage.getItem('pwa-dismissed');
+    if (!alreadyDismissed) $('install-banner').classList.add('show');
+  }, 2000);
+});
+
+$('btn-install-accept').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const choice = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $('install-banner').classList.remove('show');
+  if (choice.outcome === 'accepted') showToast('🎉 Aplikasi berhasil dipasang!');
+});
+
+$('btn-install-dismiss').addEventListener('click', () => {
+  $('install-banner').classList.remove('show');
+  localStorage.setItem('pwa-dismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  $('install-banner').classList.remove('show');
+  showToast('🎉 APD Monitor telah terpasang!');
+});
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+async function init() {
+  showLoading('Menginisialisasi dashboard…');
+  try {
+    $('in-tanggal').value = new Date().toISOString().slice(0,10);
+    await loadMaster();
+    await loadDashboard();
+    await loadLaporan();
+  } catch(e) {
+    showToast('❌ Gagal memuat: ' + e.message);
+    console.error(e);
+  }
+  hideLoading();
+}
+
+init();
+</script>
+</body>
+</html>
