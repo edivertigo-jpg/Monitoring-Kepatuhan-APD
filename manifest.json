@@ -2,14 +2,13 @@
   "name": "Dashboard Pemantauan Kepatuhan APD",
   "short_name": "APD Monitor",
   "description": "Dashboard pemantauan kepatuhan penggunaan Alat Pelindung Diri (APD) rumah sakit",
-  "start_url": "./index.html",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0f4c75",
-  "theme_color": "#0f4c75",
+  "background_color": "#1565a0",
+  "theme_color": "#1565a0",
   "lang": "id",
-  "scope": "./",
-  "categories": ["medical", "productivity", "utilities"],
+  "scope": "/",
   "icons": [
     {
       "src": "icons/icon-192.png",
@@ -24,20 +23,11 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Input Observasi",
       "short_name": "Input",
-      "description": "Catat observasi APD baru",
-      "url": "./index.html#input",
-      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Data Laporan",
-      "short_name": "Laporan",
-      "description": "Lihat histori laporan APD",
-      "url": "./index.html#laporan",
+      "url": "/",
       "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
