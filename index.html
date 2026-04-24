@@ -389,11 +389,40 @@
   </div>
 </div>
 
+
+<!-- MODAL EDIT MASTER -->
+<div class="modal-backdrop" id="modal-edit-master">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Standar APD</div>
+      <button class="modal-close" id="modal-close-edit-master">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Area</label>
+        <input type="text" id="em-area" readonly style="background:#f8fafc;color:var(--muted)"/>
+      </div>
+      <div class="form-group">
+        <label>Jenis Tindakan *</label>
+        <input type="text" id="em-tindakan" placeholder="Nama tindakan…"/>
+      </div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="font-size:.75rem;font-weight:700;color:var(--muted);display:block;margin-bottom:8px">APD yang WAJIB Digunakan (centang yang diperlukan)</label>
+      <div class="apd-grid" id="em-apd-grid"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+      <button class="btn btn-outline btn-sm" id="modal-close-edit-master2">Batal</button>
+      <button class="btn btn-primary btn-sm" id="btn-simpan-edit-master">💾 Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading"><div class="spinner"></div><p id="loading-text">Memuat data…</p></div>
 <div id="toast"></div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwyqzL8hRaUMFpn27PQ6pKSAJ8C4y8gAClRO2UobQ0cqRPzOfBXd8bITjkLF2llEmzSSw/exec';
+const API_URL='https://script.google.com/macros/s/AKfycbydNxuLLiPrIkrPxYiBLATMwwSBi6ngi_J91yy704tonZhXD2Pt91Y_kIUJ1NzwwJkCgg/exec';
 const UNITS=['Perkantoran','RM','Rawat Inap Lantai 3','Rawat Inap Lantai 2','Rawat Inap Lantai 1','Ruang Bayi','Poliklinik','Laboratorium','Radiologi','Intensive','Keuangan','Front Office / Customer Service','IGD','Ruang VK','Ruang OK','Ruang HD','Cleaning Service','Security','Petugas Parkir','Sopir','Teknisi'];
 const MONTHS_ID=['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const APD_COLS=[
@@ -497,13 +526,41 @@ function renderMasterTable(area){
     <td style="text-align:center">${dot(r['Celemek'])}</td><td style="text-align:center">${dot(r['Apron'])}</td>
     <td style="text-align:center">${dot(r['Topi'])}</td><td style="text-align:center">${dot(r['Sepatu Boots'])}</td>
     <td style="text-align:center">${dot(r['Sepatu Kerja'])}</td>
-    <td><button class="btn btn-danger btn-xs" onclick='hapusMaster(${r._rowIndex},"${r['Jenis Tindakan'].replace(/"/g,'&quot;')}","${area}")'>🗑</button></td>
+    <td style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick='editMaster(${JSON.stringify(r).replace(/'/g,"&apos;")})'>✏️</button><button class="btn btn-danger btn-xs" onclick='hapusMaster(${r._rowIndex},"${r['Jenis Tindakan'].replace(/"/g,'&quot;')}","${area}")'>🗑</button></td>
   </tr>`).join('');
 }
 async function hapusMaster(rowIndex,nama,area){
   if(!confirm(`Hapus standar "${nama}" dari area "${area}"?`))return;
   try{showLoading('Menghapus…');await api({},{action:'deleteMaster',data:{_rowIndex:rowIndex}});await loadMaster();renderMasterTable(area);showToast('✅ Standar berhasil dihapus');}catch(e){showToast('❌ '+e.message);}hideLoading();
 }
+let currentMasterRow=null;
+function editMaster(row){
+  currentMasterRow=row;
+  $('em-area').value=row['Area']||'';
+  $('em-tindakan').value=row['Jenis Tindakan']||'';
+  // render APD checkboxes
+  $('em-apd-grid').innerHTML=APD_COLS.map(a=>`<label class="apd-item${row[a.mKey]==='V'?' required':''}" for="em-chk-${a.mKey}"><input type="checkbox" id="em-chk-${a.mKey}" data-mkey="${a.mKey}" ${row[a.mKey]==='V'?'checked':''}/><span>${a.label}</span></label>`).join('');
+  $('modal-edit-master').classList.add('open');
+}
+$('modal-close-edit-master').addEventListener('click',()=>$('modal-edit-master').classList.remove('open'));
+$('modal-close-edit-master2').addEventListener('click',()=>$('modal-edit-master').classList.remove('open'));
+$('modal-edit-master').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
+$('btn-simpan-edit-master').addEventListener('click',async()=>{
+  if(!currentMasterRow)return;
+  const tindakan=$('em-tindakan').value.trim();
+  if(!tindakan){showToast('⚠️ Jenis Tindakan wajib diisi');return;}
+  const data={_rowIndex:currentMasterRow._rowIndex,'Area':currentMasterRow['Area'],'Jenis Tindakan':tindakan,'No':currentMasterRow['No'],'Status':'V'};
+  APD_COLS.forEach(a=>{data[a.mKey]=document.getElementById('em-chk-'+a.mKey)?.checked?'V':'';});
+  try{
+    showLoading('Menyimpan perubahan…');
+    await api({},{action:'updateMaster',data});
+    $('modal-edit-master').classList.remove('open');
+    const area=currentMasterRow['Area']||'';
+    await loadMaster();
+    $('master-tabs').querySelectorAll('.tab').forEach(t=>{if(t.textContent===area)t.click();});
+    showToast('✅ Standar APD berhasil diupdate!');
+  }catch(e){showToast('❌ '+e.message);}hideLoading();
+});
 function renderMaAPDGrid(){
   $('ma-apd-grid').innerHTML=APD_COLS.map(a=>`<label class="apd-item" for="ma-chk-${a.mKey}"><input type="checkbox" id="ma-chk-${a.mKey}" data-mkey="${a.mKey}"/><span>${a.label}</span></label>`).join('');
 }
