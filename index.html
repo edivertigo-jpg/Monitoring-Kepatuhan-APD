@@ -587,11 +587,15 @@ function renderUnitChart(){
 }
 
 async function loadLaporan(filters={}){laporanData=await api({action:'getLaporan',...filters});renderLaporan(laporanData.rows);}
+async function hapusLaporan(rowIndex){
+  if(!confirm('Yakin hapus data observasi ini? Data tidak bisa dikembalikan.'))return;
+  try{showLoading('Menghapus data…');await api({},{action:'deleteLaporan',data:{_rowIndex:rowIndex}});showToast('✅ Data berhasil dihapus!');await loadLaporan();await loadDashboard(dashFilters);}catch(e){showToast('❌ '+e.message);}hideLoading();
+}
 function renderLaporan(rows){
   $('laporan-count').textContent=rows.length+' data ditemukan';const tbody=$('laporan-tbody');
   $('laporan-empty').style.display=rows.length===0?'block':'none';
   if(!rows.length){tbody.innerHTML='';return;}
-  tbody.innerHTML=rows.map(r=>{const s=String(r['Status']||'').toLowerCase();const pill=s==='patuh'?'pill-patuh':s.includes('tidak')?'pill-tidak':'pill-default';return`<tr><td style="font-family:'DM Mono',monospace;font-size:.73rem">${r['NO']||'—'}</td><td>${fmtDate(r['Tanggal'])}</td><td>${r['PROFESI']||'—'}</td><td><span style="font-size:.78rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${r['UNIT']||'—'}</span></td><td>${r['AREA']||'—'}</td><td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r['JENIS TINDAKAN']||'—'}</td><td><span class="status-pill ${pill}">${r['Status']||'—'}</span></td><td style="color:var(--muted);font-size:.75rem">${r['Keterangn']||'—'}</td><td><button class="btn btn-outline btn-xs" onclick='showDetail(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Detail</button></td></tr>`;}).join('');
+  tbody.innerHTML=rows.map(r=>{const s=String(r['Status']||'').toLowerCase();const pill=s==='patuh'?'pill-patuh':s.includes('tidak')?'pill-tidak':'pill-default';return`<tr><td style="font-family:'DM Mono',monospace;font-size:.73rem">${r['NO']||'—'}</td><td>${fmtDate(r['Tanggal'])}</td><td>${r['PROFESI']||'—'}</td><td><span style="font-size:.78rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${r['UNIT']||'—'}</span></td><td>${r['AREA']||'—'}</td><td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r['JENIS TINDAKAN']||'—'}</td><td><span class="status-pill ${pill}">${r['Status']||'—'}</span></td><td style="color:var(--muted);font-size:.75rem">${r['Keterangn']||'—'}</td><td><button class="btn btn-outline btn-xs" onclick='showDetail(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Detail</button><button class="btn btn-danger btn-xs" onclick='hapusLaporan(${r._rowIndex})'>🗑</button></td></tr>`;}).join('');
 }
 function showDetail(row){
   currentDetailRow=row;
