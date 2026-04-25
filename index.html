@@ -84,12 +84,20 @@
     .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
     .card-title{font-size:.9rem;font-weight:700}
     .card-sub{font-size:.73rem;color:var(--muted);margin-top:2px}
-    .table-wrap{overflow-x:auto}
+    .table-wrap{overflow-x:auto;border-radius:10px;border:1.5px solid var(--border)}
     table{width:100%;border-collapse:collapse;font-size:.82rem}
-    thead th{background:var(--bg);padding:9px 13px;text-align:left;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
-    tbody tr{border-bottom:1px solid #f1f5f9;transition:background .15s}
+    thead th{background:var(--surface);padding:9px 13px;text-align:left;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:2px solid var(--border);border-right:1px solid var(--border);white-space:nowrap}
+    thead th:last-child{border-right:none}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s}
+    tbody tr:last-child{border-bottom:none}
     tbody tr:hover{background:#f5f9ff}
-    tbody td{padding:9px 13px;vertical-align:middle}
+    tbody td{padding:9px 13px;vertical-align:middle;border-right:1px solid var(--border)}
+    tbody td:last-child{border-right:none}
+    /* sticky kolom kiri untuk tabel master */
+    #master-table{table-layout:auto}
+    #master-table thead th:first-child{position:sticky;left:0;z-index:3;background:#f8fafc;box-shadow:3px 0 8px rgba(0,0,0,.08);border-right:2px solid var(--border)}
+    #master-table tbody td:first-child{position:sticky;left:0;z-index:2;background:#ffffff;box-shadow:3px 0 8px rgba(0,0,0,.08);font-weight:600;font-size:.8rem;border-right:2px solid var(--border)}
+    #master-table tbody tr:hover td:first-child{background:#f5f9ff}
     .status-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:.72rem;font-weight:700;white-space:nowrap}
     .pill-patuh{background:#d1fae5;color:#065f46}
     .pill-tidak{background:#fee2e2;color:#991b1b}
@@ -318,13 +326,8 @@
       <div class="card">
         <div class="card-header"><div><div class="card-title" id="master-area-title">Standar APD</div><div class="card-sub" id="master-count"></div></div></div>
         <div class="table-wrap">
-          <table>
-            <thead><tr>
-              <th>No</th><th>Jenis Tindakan</th>
-              <th title="ST Pemeriksaan">ST Pem</th><th title="ST Bedah/Steril">ST Bedah</th><th title="ST Rumah Tangga">ST RT</th>
-              <th>M.Bedah</th><th>N95</th><th>Google</th><th>Faceshield</th>
-              <th>Gaun</th><th>Celemek</th><th>Apron</th><th>Topi</th><th>Boots</th><th>Sepatu</th><th>Aksi</th>
-            </tr></thead>
+          <table id="master-table">
+            <thead id="master-thead"></thead>
             <tbody id="master-tbody"></tbody>
           </table>
         </div>
@@ -516,18 +519,29 @@ function renderMasterTable(area){
   $('master-area-title').textContent='Standar APD — '+area;
   $('master-count').textContent=rows.length+' jenis tindakan';
   const dot=v=>v==='V'?`<span style="color:#22c55e;font-size:15px;font-weight:700">✓</span>`:`<span style="color:#cbd5e1;font-size:10px">—</span>`;
-  $('master-tbody').innerHTML=rows.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:.73rem;color:var(--muted)">${r['No']}</td>
-    <td style="font-weight:500">${r['Jenis Tindakan']}</td>
-    <td style="text-align:center">${dot(r['ST Pemeriksaan'])}</td><td style="text-align:center">${dot(r['ST Bedah/Steril'])}</td>
-    <td style="text-align:center">${dot(r['ST Rumah Tangga'])}</td><td style="text-align:center">${dot(r['Masker Bedah'])}</td>
-    <td style="text-align:center">${dot(r['Masker Respiratorik/N95'])}</td><td style="text-align:center">${dot(r['Google'])}</td>
-    <td style="text-align:center">${dot(r['Faceshiled'])}</td><td style="text-align:center">${dot(r['Gaun'])}</td>
-    <td style="text-align:center">${dot(r['Celemek'])}</td><td style="text-align:center">${dot(r['Apron'])}</td>
-    <td style="text-align:center">${dot(r['Topi'])}</td><td style="text-align:center">${dot(r['Sepatu Boots'])}</td>
-    <td style="text-align:center">${dot(r['Sepatu Kerja'])}</td>
-    <td style="display:flex;gap:4px"><button class="btn btn-outline btn-xs" onclick='editMaster(${JSON.stringify(r).replace(/'/g,"&apos;")})'>✏️</button><button class="btn btn-danger btn-xs" onclick='hapusMaster(${r._rowIndex},"${r['Jenis Tindakan'].replace(/"/g,'&quot;')}","${area}")'>🗑</button></td>
+
+  // TRANSPOSED: APD = baris, Jenis Tindakan = kolom
+  $('master-thead').innerHTML = `<tr>
+    <th style="min-width:150px">Jenis APD</th>
+    ${rows.map(r=>`<th style="min-width:120px;text-align:center">${r['Jenis Tindakan']}</th>`).join('')}
+  </tr>`;
+
+  // Baris Aksi
+  const aksiRow = `<tr>
+    <td style="color:var(--muted);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase">Aksi</td>
+    ${rows.map(r=>`<td style="text-align:center"><div style="display:flex;gap:4px;justify-content:center">
+      <button class="btn btn-outline btn-xs" onclick='editMaster(${JSON.stringify(r).replace(/'/g,"&apos;")})'>✏️</button>
+      <button class="btn btn-danger btn-xs" onclick='hapusMaster(${r._rowIndex},"${r['Jenis Tindakan'].replace(/"/g,'&quot;')}","${area}")'>🗑</button>
+    </div></td>`).join('')}
+  </tr>`;
+
+  // Satu baris per APD
+  const apdRows = APD_COLS.map(a=>`<tr>
+    <td style="white-space:nowrap">${a.label}</td>
+    ${rows.map(r=>`<td style="text-align:center">${dot(r[a.mKey])}</td>`).join('')}
   </tr>`).join('');
+
+  $('master-tbody').innerHTML = aksiRow + apdRows;
 }
 async function hapusMaster(rowIndex,nama,area){
   if(!confirm(`Hapus standar "${nama}" dari area "${area}"?`))return;
