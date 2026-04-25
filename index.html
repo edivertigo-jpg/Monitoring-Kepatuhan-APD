@@ -18,6 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root{--navy:#0d3b6e;--blue:#1565a0;--sky:#1e88e5;--green:#43a047;--mint:#00c9a7;--red:#e53935;--orange:#fb8c00;--white:#ffffff;--bg:#f0f4f8;--card:#ffffff;--border:#dde3ed;--text:#1a2332;--muted:#64748b;--shadow:0 2px 14px rgba(13,59,110,.09);--radius:14px}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -242,7 +243,7 @@
         <div class="ff" style="align-self:flex-end"><button class="btn btn-outline btn-sm" id="btn-reset-filter">✕ Reset</button></div>
       </div>
       <div class="card">
-        <div class="card-header"><div><div class="card-title">Data Laporan Observasi</div><div class="card-sub" id="laporan-count">— data</div></div></div>
+        <div class="card-header"><div><div class="card-title">Data Laporan Observasi</div><div class="card-sub" id="laporan-count">— data</div></div><button class="btn btn-success btn-sm" id="btn-export-excel">⬇ Export Excel</button></div>
         <div class="table-wrap">
           <table>
             <thead><tr><th>No</th><th>Tanggal</th><th>Profesi</th><th>Unit</th><th>Area</th><th>Jenis Tindakan</th><th>Status</th><th>Keterangan</th><th>Aksi</th></tr></thead>
@@ -678,6 +679,34 @@ function renderLaporan(rows){
   if(!rows.length){tbody.innerHTML='';return;}
   tbody.innerHTML=rows.map(r=>{const s=String(r['Status']||'').toLowerCase();const pill=s==='patuh'?'pill-patuh':s.includes('tidak')?'pill-tidak':'pill-default';return`<tr><td style="font-family:'DM Mono',monospace;font-size:.73rem">${r['NO']||'—'}</td><td>${fmtDate(r['Tanggal'])}</td><td>${r['PROFESI']||'—'}</td><td><span style="font-size:.78rem;background:#f1f5f9;padding:2px 7px;border-radius:5px">${r['UNIT']||'—'}</span></td><td>${r['AREA']||'—'}</td><td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r['JENIS TINDAKAN']||'—'}</td><td><span class="status-pill ${pill}">${r['Status']||'—'}</span></td><td style="color:var(--muted);font-size:.75rem">${r['Keterangn']||'—'}</td><td><button class="btn btn-outline btn-xs" onclick='showDetail(${JSON.stringify(r).replace(/'/g,"&apos;")})'>Detail</button><button class="btn btn-danger btn-xs" onclick='hapusLaporan(${r._rowIndex})'>🗑</button></td></tr>`;}).join('');
 }
+function exportExcel(){
+  if(!laporanData||!laporanData.rows||!laporanData.rows.length){showToast("⚠️ Tidak ada data untuk diekspor");return;}
+  const rows=laporanData.rows;
+  const APD_KEYS=["Sarung Tangan Pemeriksaan","Sarung Tangan Bedah/Steril","Sarung Tangan Rumah Tangga","Masker Bedah","Masker Respiratorik/N95","Google","Faceshiled","Gaun ","Celemek","Apron","Topi","Sepatu Boots","Sepatu Kerja"];
+  const wsData=[];
+  wsData.push(["NO","Tanggal","Waktu","Profesi","Unit","Area","Jenis Tindakan",...APD_KEYS,"Status","Keterangan"]);
+  rows.forEach(r=>{
+    const tgl=r["Tanggal"]?new Date(r["Tanggal"]).toLocaleDateString("id-ID",{day:"2-digit",month:"2-digit",year:"numeric"}):"";
+    const apd=APD_KEYS.map(k=>r[k]==="V"?"V":"");
+    wsData.push([r["NO"]||"",tgl,r["WAKTU"]||"",r["PROFESI"]||"",r["UNIT"]||"",r["AREA"]||"",r["JENIS TINDAKAN"]||"",...apd,r["Status"]||"",r["Keterangn"]||""]);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws["!cols"]=[{wch:5},{wch:14},{wch:10},{wch:14},{wch:20},{wch:18},{wch:25},{wch:22},{wch:22},{wch:22},{wch:14},{wch:20},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:8},{wch:13},{wch:13},{wch:12},{wch:12}];
+  const range=XLSX.utils.decode_range(ws["!ref"]);
+  for(let c=range.s.c;c<=range.e.c;c++){
+    const addr=XLSX.utils.encode_cell({r:0,c});
+    if(!ws[addr])continue;
+    ws[addr].s={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1565A0"}}};
+  }
+  XLSX.utils.book_append_sheet(wb,ws,"Laporan APD");
+  const now=new Date();
+  const tgl=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}`;
+  XLSX.writeFile(wb,`Laporan_APD_NusaDua_${tgl}.xlsx`);
+  showToast("✅ File Excel berhasil diunduh!");
+}
+$("btn-export-excel").addEventListener("click",exportExcel);
+
 function showDetail(row){
   currentDetailRow=row;
   const apd=APD_COLS.map(a=>`<div style="display:flex;align-items:center;gap:6px;padding:3px 0"><span style="color:${row[a.key]==='V'?'var(--green)':'#cbd5e1'}">${row[a.key]==='V'?'✅':'⬜'}</span><span style="font-size:.82rem">${a.label}</span></div>`).join('');
