@@ -299,8 +299,6 @@
             <label>Area *</label>
             <select id="ma-area">
               <option value="">— Pilih atau Buat Baru —</option>
-              <option>Perawatan NON ISO</option><option>Perawatan ISO</option>
-              <option>CSSD</option><option>GIZI</option><option>LAUNDRY</option>
               <option value="__new__">+ Buat Area Baru…</option>
             </select>
           </div>
@@ -505,6 +503,18 @@ async function loadMaster(){
   renderMasterTabs();
   if(Object.keys(masterData.byArea).length>0)renderMasterTable(Object.keys(masterData.byArea)[0]);
   populateTindakanDropdown();renderMaAPDGrid();
+  populateAreaDropdown();
+}
+function populateAreaDropdown(){
+  const sel=$('ma-area');
+  const current=sel.value;
+  while(sel.options.length>1)sel.remove(1);
+  Object.keys(masterData.byArea).sort().forEach(area=>{
+    const o=document.createElement('option');
+    o.value=o.textContent=area;
+    sel.insertBefore(o,sel.lastElementChild);
+  });
+  if(current)sel.value=current;
 }
 function renderMasterTabs(){
   const tabs=$('master-tabs');tabs.innerHTML='';
