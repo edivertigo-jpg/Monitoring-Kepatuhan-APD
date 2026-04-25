@@ -426,14 +426,14 @@ const API_URL='https://script.google.com/macros/s/AKfycbydNxuLLiPrIkrPxYiBLATMww
 const UNITS=['Perkantoran','RM','Rawat Inap Lantai 3','Rawat Inap Lantai 2','Rawat Inap Lantai 1','Ruang Bayi','Poliklinik','Laboratorium','Radiologi','Intensive','Keuangan','Front Office / Customer Service','IGD','Ruang VK','Ruang OK','Ruang HD','Cleaning Service','Security','Petugas Parkir','Sopir','Teknisi'];
 const MONTHS_ID=['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const APD_COLS=[
-  {key:'Sarung Tangan Pemeriksaan',label:'ST Pemeriksaan',mKey:'Pemeriksaan'},
-  {key:'Sarung Tangan Bedah/Steril',label:'ST Bedah/Steril',mKey:'Bedah/Steril'},
-  {key:'Sarung Tangan Rumah Tangga',label:'ST Rumah Tangga',mKey:'Rumah Tangga'},
-  {key:'Masker Bedah',label:'Masker Bedah',mKey:'Bedah'},
-  {key:'Masker Respiratorik/N95',label:'Masker N95',mKey:'Respiratorik/N95'},
+  {key:'Sarung Tangan Pemeriksaan',label:'ST Pemeriksaan',mKey:'ST Pemeriksaan'},
+  {key:'Sarung Tangan Bedah/Steril',label:'ST Bedah/Steril',mKey:'ST Bedah/Steril'},
+  {key:'Sarung Tangan Rumah Tangga',label:'ST Rumah Tangga',mKey:'ST Rumah Tangga'},
+  {key:'Masker Bedah',label:'Masker Bedah',mKey:'Masker Bedah'},
+  {key:'Masker Respiratorik/N95',label:'Masker N95',mKey:'Masker Respiratorik/N95'},
   {key:'Google',label:'Kacamata Google',mKey:'Google'},
   {key:'Faceshiled',label:'Faceshield',mKey:'Faceshiled'},
-  {key:'Gaun ',label:'Gaun',mKey:'Gaun '},
+  {key:'Gaun',label:'Gaun',mKey:'Gaun'},
   {key:'Celemek',label:'Celemek',mKey:'Celemek'},
   {key:'Apron',label:'Apron',mKey:'Apron'},
   {key:'Topi',label:'Topi',mKey:'Topi'},
@@ -515,14 +515,14 @@ function renderMasterTable(area){
   const rows=masterData.byArea[area]||[];
   $('master-area-title').textContent='Standar APD — '+area;
   $('master-count').textContent=rows.length+' jenis tindakan';
-  const dot=v=>v==='V'?`<span class="apd-dot"></span>`:`<span style="color:#cbd5e1;font-size:10px">—</span>`;
+  const dot=v=>v==='V'?`<span style="color:#22c55e;font-size:15px;font-weight:700">✓</span>`:`<span style="color:#cbd5e1;font-size:10px">—</span>`;
   $('master-tbody').innerHTML=rows.map(r=>`<tr>
     <td style="font-family:'DM Mono',monospace;font-size:.73rem;color:var(--muted)">${r['No']}</td>
     <td style="font-weight:500">${r['Jenis Tindakan']}</td>
-    <td style="text-align:center">${dot(r['Pemeriksaan'])}</td><td style="text-align:center">${dot(r['Bedah/Steril'])}</td>
-    <td style="text-align:center">${dot(r['Rumah Tangga'])}</td><td style="text-align:center">${dot(r['Bedah'])}</td>
-    <td style="text-align:center">${dot(r['Respiratorik/N95'])}</td><td style="text-align:center">${dot(r['Google'])}</td>
-    <td style="text-align:center">${dot(r['Faceshiled'])}</td><td style="text-align:center">${dot(r['Gaun '])}</td>
+    <td style="text-align:center">${dot(r['ST Pemeriksaan'])}</td><td style="text-align:center">${dot(r['ST Bedah/Steril'])}</td>
+    <td style="text-align:center">${dot(r['ST Rumah Tangga'])}</td><td style="text-align:center">${dot(r['Masker Bedah'])}</td>
+    <td style="text-align:center">${dot(r['Masker Respiratorik/N95'])}</td><td style="text-align:center">${dot(r['Google'])}</td>
+    <td style="text-align:center">${dot(r['Faceshiled'])}</td><td style="text-align:center">${dot(r['Gaun'])}</td>
     <td style="text-align:center">${dot(r['Celemek'])}</td><td style="text-align:center">${dot(r['Apron'])}</td>
     <td style="text-align:center">${dot(r['Topi'])}</td><td style="text-align:center">${dot(r['Sepatu Boots'])}</td>
     <td style="text-align:center">${dot(r['Sepatu Kerja'])}</td>
