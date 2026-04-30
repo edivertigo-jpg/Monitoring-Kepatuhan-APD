@@ -219,6 +219,10 @@
         <div class="card-header"><div><div class="card-title">Kepatuhan per Area</div><div class="card-sub">Persentase berdasarkan area tindakan</div></div></div>
         <div id="area-progress"></div>
       </div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div><div class="card-title">Kepatuhan per Profesi</div><div class="card-sub">Persentase kepatuhan berdasarkan profesi tenaga kesehatan</div></div></div>
+        <div id="profesi-progress"></div>
+      </div>
       <div class="card">
         <div class="card-header"><div><div class="card-title">Kepatuhan per Unit</div><div class="card-sub">10 unit dengan data terbanyak</div></div></div>
         <canvas id="chart-unit" height="220"></canvas>
@@ -631,7 +635,7 @@ function autoStatus(){
 
 async function loadDashboard(filters={}){
   summaryData=await api({action:'getSummary',...filters});
-  renderStats(filters);renderTrendChart();renderDonutChart();renderAreaProgress();renderUnitChart();
+  renderStats(filters);renderTrendChart();renderDonutChart();renderAreaProgress();renderProfesiProgress();renderUnitChart();
   $('last-sync').textContent='Sync: '+new Date().toLocaleTimeString('id-ID');
 }
 function renderStats(filters={}){
@@ -661,6 +665,21 @@ function renderAreaProgress(){
   if(!areas.length){el.innerHTML='<div class="empty-state"><div class="emoji">📊</div><p>Belum ada data</p></div>';return;}
   el.innerHTML=areas.map(([area,d])=>`<div class="progress-row"><div class="progress-label" title="${area}">${area}</div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${d.persen}%;background:${d.persen>=80?'var(--green)':d.persen>=60?'var(--orange)':'var(--red)'}"></div></div><div class="progress-pct">${d.persen}%</div><div style="font-size:.7rem;color:var(--muted);width:50px">${d.total} obs</div></div>`).join('');
 }
+function renderProfesiProgress(){
+  const el=$('profesi-progress');
+  const byProfesi={};
+  (laporanData?.rows||[]).forEach(r=>{
+    const profesi=r['PROFESI']||r['Profesi']||'—';
+    const s=String(r['Status']||'').toLowerCase();
+    if(!byProfesi[profesi])byProfesi[profesi]={patuh:0,tidakPatuh:0,total:0};
+    if(s==='patuh')byProfesi[profesi].patuh++;
+    else if(s.includes('tidak'))byProfesi[profesi].tidakPatuh++;
+    byProfesi[profesi].total++;
+  });
+  const profesiEntries=Object.entries(byProfesi).map(([p,d])=>([p,{...d,persen:d.total>0?Math.round(d.patuh/d.total*100):0}])).sort((a,b)=>b[1].persen-a[1].persen);
+  if(!profesiEntries.length){el.innerHTML='<div class="empty-state"><div class="emoji">👩‍⚕️</div><p>Belum ada data profesi</p></div>';return;}
+  el.innerHTML=profesiEntries.map(([profesi,d])=>`<div class="progress-row"><div class="progress-label" title="${profesi}">${profesi}</div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${d.persen}%;background:${d.persen>=80?'var(--green)':d.persen>=60?'var(--orange)':'var(--red)'}"></div></div><div class="progress-pct">${d.persen}%</div><div style="font-size:.7rem;color:var(--muted);width:50px">${d.total} obs</div></div>`).join('');
+}
 function renderUnitChart(){
   if(chartUnit)chartUnit.destroy();const units=Object.entries(summaryData.byUnit).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
   const ctx=$('chart-unit').getContext('2d');
@@ -668,7 +687,7 @@ function renderUnitChart(){
   chartUnit=new Chart(ctx,{type:'bar',data:{labels:units.map(u=>u[0]),datasets:[{label:'Patuh',data:units.map(u=>u[1].patuh),backgroundColor:'#43a047',borderRadius:4},{label:'Tidak Patuh',data:units.map(u=>u[1].tidakPatuh),backgroundColor:'#e53935',borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,grid:{color:'#f1f5f9'}}}}});
 }
 
-async function loadLaporan(filters={}){laporanData=await api({action:'getLaporan',...filters});renderLaporan(laporanData.rows);}
+async function loadLaporan(filters={}){laporanData=await api({action:'getLaporan',...filters});renderLaporan(laporanData.rows);renderProfesiProgress();}
 async function hapusLaporan(rowIndex){
   if(!confirm('Yakin hapus data observasi ini? Data tidak bisa dikembalikan.'))return;
   try{showLoading('Menghapus data…');await api({},{action:'deleteLaporan',data:{_rowIndex:rowIndex}});showToast('✅ Data berhasil dihapus!');await loadLaporan();await loadDashboard(dashFilters);}catch(e){showToast('❌ '+e.message);}hideLoading();
