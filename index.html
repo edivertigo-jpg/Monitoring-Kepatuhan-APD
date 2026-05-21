@@ -621,14 +621,15 @@ function populateTindakanDropdown(){
   });
   $('in-tindakan').addEventListener('change',function(){renderAPDChecklist($('in-area').value,this.value);autoStatus();});
 }
+function isReq(val){return val&&String(val).trim().toLowerCase()==='v';}
 function renderAPDChecklist(area,tindakan){
-  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
-  $('apd-checklist').innerHTML=APD_COLS.map(a=>{const req=std&&std[a.mKey]==='V';return`<label class="apd-item${req?' required':''}" for="chk-${a.mKey}"><input type="checkbox" id="chk-${a.mKey}" data-key="${a.key}" onchange="autoStatus()"/><span>${a.label}</span>${req?'<span class="req-badge">WAJIB</span>':''}</label>`;}).join('');
+  const std=masterData?.rows?.find(r=>r['Area']?.toLowerCase()===area?.toLowerCase()&&r['Jenis Tindakan']?.toLowerCase()===tindakan?.toLowerCase());
+  $('apd-checklist').innerHTML=APD_COLS.map(a=>{const req=std&&isReq(std[a.mKey]);return`<label class="apd-item${req?' required':''}" for="chk-${a.mKey}"><input type="checkbox" id="chk-${a.mKey}" data-key="${a.key}" onchange="autoStatus()"/><span>${a.label}</span>${req?'<span class="req-badge">WAJIB</span>':''}</label>`;}).join('');
 }
 function autoStatus(){
   const area=$('in-area').value,tindakan=$('in-tindakan').value;if(!area||!tindakan)return;
-  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);if(!std)return;
-  const allOk=APD_COLS.every(a=>{const req=std[a.mKey]==='V';const chk=document.getElementById('chk-'+a.mKey)?.checked;return !req||chk;});
+  const std=masterData?.rows?.find(r=>r['Area']?.toLowerCase()===area?.toLowerCase()&&r['Jenis Tindakan']?.toLowerCase()===tindakan?.toLowerCase());if(!std)return;
+  const allOk=APD_COLS.every(a=>{const req=std&&isReq(std[a.mKey]);const chk=document.getElementById('chk-'+a.mKey)?.checked;return !req||chk;});
   $('in-status').value=allOk?'Patuh':'Tidak Patuh';
 }
 
@@ -773,9 +774,9 @@ function openEditModal(row){
   $('ed-tindakan').value = row['JENIS TINDAKAN']||'';
 
   // Render APD checklist dengan nilai existing
-  const std = masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===row['JENIS TINDAKAN']);
+  const std = masterData?.rows?.find(r=>r['Area']?.toLowerCase()===area?.toLowerCase()&&r['Jenis Tindakan']?.toLowerCase()===row['JENIS TINDAKAN']?.toLowerCase());
   $('ed-apd-checklist').innerHTML = APD_COLS.map(a=>{
-    const req = std && std[a.mKey]==='V';
+    const req=std&&isReq(std[a.mKey]);
     const checked = row[a.key]==='V';
     return`<label class="apd-item${req?' required':''}" for="ed-chk-${a.mKey}">
       <input type="checkbox" id="ed-chk-${a.mKey}" data-key="${a.key}" ${checked?'checked':''} onchange="autoStatusEdit()"/>
@@ -796,9 +797,9 @@ function openEditModal(row){
 }
 
 function renderEditAPDChecklist(area,tindakan){
-  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
+  const std=masterData?.rows?.find(r=>r['Area']?.toLowerCase()===area?.toLowerCase()&&r['Jenis Tindakan']?.toLowerCase()===tindakan?.toLowerCase());
   $('ed-apd-checklist').innerHTML=APD_COLS.map(a=>{
-    const req=std&&std[a.mKey]==='V';
+    const req=std&&isReq(std[a.mKey]);
     return`<label class="apd-item${req?' required':''}" for="ed-chk-${a.mKey}">
       <input type="checkbox" id="ed-chk-${a.mKey}" data-key="${a.key}" onchange="autoStatusEdit()"/>
       <span>${a.label}</span>${req?'<span class="req-badge">WAJIB</span>':''}
@@ -809,9 +810,9 @@ function renderEditAPDChecklist(area,tindakan){
 function autoStatusEdit(){
   const area=$('ed-area').value,tindakan=$('ed-tindakan').value;
   if(!area||!tindakan)return;
-  const std=masterData?.rows?.find(r=>r['Area']===area&&r['Jenis Tindakan']===tindakan);
+  const std=masterData?.rows?.find(r=>r['Area']?.toLowerCase()===area?.toLowerCase()&&r['Jenis Tindakan']?.toLowerCase()===tindakan?.toLowerCase());
   if(!std)return;
-  const allOk=APD_COLS.every(a=>{ const req=std[a.mKey]==='V'; const chk=document.getElementById('ed-chk-'+a.mKey)?.checked; return !req||chk; });
+  const allOk=APD_COLS.every(a=>{ const req=std&&isReq(std[a.mKey]); const chk=document.getElementById('ed-chk-'+a.mKey)?.checked; return !req||chk; });
   $('ed-status').value=allOk?'Patuh':'Tidak Patuh';
 }
 
