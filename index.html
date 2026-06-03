@@ -421,7 +421,7 @@
 <div id="toast"></div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbydNxuLLiPrIkrPxYiBLATMwwSBi6ngi_J91yy704tonZhXD2Pt91Y_kIUJ1NzwwJkCgg/exec';
+const API_URL='https://script.google.com/macros/s/AKfycbyIWWlYv0QtYmZtvTGZUTErvj0XQn_xFdT7pHbRACtrKa6rTJofph-_i3d21GPAcktk/exec';
 const UNITS=['Perkantoran','RM','Rawat Inap Lantai 3','Rawat Inap Lantai 2','Rawat Inap Lantai 1','Ruang Bayi','Poliklinik','Laboratorium','Radiologi','Intensive','Keuangan','Front Office / Customer Service','IGD','Ruang VK','Ruang OK','Ruang HD','Cleaning Service','Security','Petugas Parkir','Sopir','Teknisi'];
 const MONTHS_ID=['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const APD_COLS=[
@@ -430,11 +430,9 @@ const APD_COLS=[
   {key:'Sarung Tangan Rumah Tangga',label:'ST Rumah Tangga',mKey:'ST Rumah Tangga'},
   {key:'Masker Bedah',label:'Masker Bedah',mKey:'Masker Bedah'},
   {key:'Masker Respiratorik/N95',label:'Masker N95',mKey:'Masker Respiratorik/N95'},
-  {key:'Google',label:'Kacamata Google',mKey:'Google'},
-  {key:'Faceshiled',label:'Faceshield',mKey:'Faceshiled'},
+  {key:'Google/Face Shield',label:'Google/Face Shield',mKey:'Google/Face Shield'},
   {key:'Gaun',label:'Gaun',mKey:'Gaun'},
-  {key:'Celemek',label:'Celemek',mKey:'Celemek'},
-  {key:'Apron',label:'Apron',mKey:'Apron'},
+  {key:'Celemek/Apron',label:'Celemek/Apron',mKey:'Celemek/Apron'},
   {key:'Topi',label:'Topi',mKey:'Topi'},
   {key:'Sepatu Boots',label:'Sepatu Boots',mKey:'Sepatu Boots'},
   {key:'Sepatu Kerja',label:'Sepatu Kerja',mKey:'Sepatu Kerja'},
@@ -701,7 +699,7 @@ function renderLaporan(rows){
 function exportExcel(){
   if(!laporanData||!laporanData.rows||!laporanData.rows.length){showToast("⚠️ Tidak ada data untuk diekspor");return;}
   const rows=laporanData.rows;
-  const APD_KEYS=["Sarung Tangan Pemeriksaan","Sarung Tangan Bedah/Steril","Sarung Tangan Rumah Tangga","Masker Bedah","Masker Respiratorik/N95","Google","Faceshiled","Gaun ","Celemek","Apron","Topi","Sepatu Boots","Sepatu Kerja"];
+  const APD_KEYS=["Sarung Tangan Pemeriksaan","Sarung Tangan Bedah/Steril","Sarung Tangan Rumah Tangga","Masker Bedah","Masker Respiratorik/N95","Google/Face Shield","Gaun","Celemek/Apron","Topi","Sepatu Boots","Sepatu Kerja"];
   const wsData=[];
   wsData.push(["NO","Tanggal","Waktu","Profesi","Unit","Area","Jenis Tindakan",...APD_KEYS,"Status","Keterangan"]);
   rows.forEach(r=>{
