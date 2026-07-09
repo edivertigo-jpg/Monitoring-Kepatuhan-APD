@@ -223,9 +223,26 @@
         <div class="card-header"><div><div class="card-title">Kepatuhan per Profesi</div><div class="card-sub">Persentase kepatuhan berdasarkan profesi tenaga kesehatan</div></div></div>
         <div id="profesi-progress"></div>
       </div>
-      <div class="card">
+      <div class="card" style="margin-bottom:20px">
         <div class="card-header"><div><div class="card-title">Kepatuhan per Unit</div><div class="card-sub">10 unit dengan data terbanyak</div></div></div>
         <canvas id="chart-unit" height="220"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">🎯 Capaian Sampel per Unit</div><div class="card-sub" id="target-period-label">Target sampel observasi bulanan per unit</div></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="tg-tahun" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.8rem;background:var(--card);color:var(--text)"></select>
+            <select id="tg-bulan" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.8rem;background:var(--card);color:var(--text)">
+              <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+              <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+              <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+              <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+            </select>
+            <button class="btn btn-outline btn-sm" id="btn-edit-target">✏️ Edit Target</button>
+          </div>
+        </div>
+        <div id="target-notif" style="margin-bottom:14px"></div>
+        <div id="target-progress"></div>
       </div>
     </div>
 
@@ -388,6 +405,22 @@
   </div>
 </div>
 
+
+<!-- MODAL EDIT TARGET SAMPEL -->
+<div class="modal-backdrop" id="modal-edit-target">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Target Sampel per Unit</div>
+      <button class="modal-close" id="modal-close-edit-target">✕</button>
+    </div>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px">Atur target jumlah sampel observasi per bulan untuk masing-masing unit. Default 100 sampel/bulan.</p>
+    <div id="target-edit-list" style="display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow-y:auto"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button class="btn btn-outline btn-sm" id="btn-target-reset-default">↺ Reset ke Default (100)</button>
+      <button class="btn btn-primary btn-sm" id="btn-simpan-target">💾 Simpan Target</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL EDIT MASTER -->
 <div class="modal-backdrop" id="modal-edit-master">
@@ -684,6 +717,58 @@ function renderUnitChart(){
   if(!units.length){ctx.fillStyle='#94a3b8';ctx.font='14px Plus Jakarta Sans';ctx.textAlign='center';ctx.fillText('Belum ada data',ctx.canvas.width/2,80);return;}
   chartUnit=new Chart(ctx,{type:'bar',data:{labels:units.map(u=>u[0]),datasets:[{label:'Patuh',data:units.map(u=>u[1].patuh),backgroundColor:'#43a047',borderRadius:4},{label:'Tidak Patuh',data:units.map(u=>u[1].tidakPatuh),backgroundColor:'#e53935',borderRadius:4}]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,grid:{color:'#f1f5f9'}}}}});
 }
+
+// ===== TARGET SAMPEL PER UNIT =====
+const TARGET_KEY='apd-sample-target-v1';
+function getTargets(){
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(TARGET_KEY)||'{}');}catch(e){saved={};}
+  const out={};UNITS.forEach(u=>{out[u]=(saved[u]!=null&&!isNaN(saved[u]))?saved[u]:100;});
+  return out;
+}
+function saveTargets(targets){localStorage.setItem(TARGET_KEY,JSON.stringify(targets));}
+let targetSummary=null;
+function populateTargetPeriodDropdowns(){
+  const now=new Date(),selY=$('tg-tahun');selY.innerHTML='';
+  const curY=now.getFullYear();
+  for(let y=curY;y>=curY-3;y--){const o=document.createElement('option');o.value=o.textContent=y;selY.appendChild(o);}
+  selY.value=curY;$('tg-bulan').value=String(now.getMonth()+1);
+}
+async function loadSampleTarget(){
+  const tahun=$('tg-tahun').value,bulan=$('tg-bulan').value;
+  try{targetSummary=await api({action:'getSummary',tahun,bulan});renderSampleTarget();}
+  catch(e){showToast('❌ Gagal memuat capaian sampel: '+e.message);}
+}
+function renderSampleTarget(){
+  const targets=getTargets(),byUnit=targetSummary?.byUnit||{};
+  const bulanTxt=MONTHS_ID[parseInt($('tg-bulan').value)]||'',tahunTxt=$('tg-tahun').value||'';
+  $('target-period-label').textContent='Periode: '+bulanTxt+' '+tahunTxt;
+  const rows=UNITS.map(u=>{
+    const actual=byUnit[u]?.total||0,target=targets[u]||100;
+    const persen=target>0?Math.round(actual/target*100):0,achieved=actual>=target;
+    return{unit:u,actual,target,persen,achieved};
+  }).sort((a,b)=>a.persen-b.persen);
+  const belum=rows.filter(r=>!r.achieved).length;
+  $('target-notif').innerHTML=belum>0
+    ?'<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fee2e2;border:1.5px solid #fecaca;border-radius:10px;color:#991b1b;font-size:.83rem;font-weight:600">⚠️ '+belum+' dari '+rows.length+' unit belum mencapai target sampel bulan '+bulanTxt+' '+tahunTxt+'</div>'
+    :'<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#d1fae5;border:1.5px solid #a7f3d0;border-radius:10px;color:#065f46;font-size:.83rem;font-weight:600">✅ Semua unit sudah mencapai target sampel bulan '+bulanTxt+' '+tahunTxt+'!</div>';
+  $('target-progress').innerHTML=rows.map(r=>`<div class="progress-row"${r.achieved?'':' style="background:#fef2f2;border-radius:8px;padding:6px 8px;margin-left:-8px;margin-right:-8px"'}><div class="progress-label" title="${r.unit}">${r.unit}</div><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${Math.min(100,r.persen)}%;background:${r.achieved?'var(--green)':'var(--red)'}"></div></div><div class="progress-pct">${r.persen}%</div><div style="font-size:.7rem;color:var(--muted);width:66px">${r.actual}/${r.target}</div><div style="width:112px;text-align:right">${r.achieved?'<span class="status-pill pill-patuh">✅ Tercapai</span>':'<span class="status-pill pill-tidak">⚠️ Belum</span>'}</div></div>`).join('');
+}
+function openEditTargetModal(){
+  const targets=getTargets();
+  $('target-edit-list').innerHTML=UNITS.map(u=>`<div style="display:flex;align-items:center;gap:10px"><label style="flex:1;font-size:.83rem">${u}</label><input type="number" min="0" step="1" data-unit="${u}" class="tg-input" value="${targets[u]}" style="width:100px;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.83rem"/></div>`).join('');
+  $('modal-edit-target').classList.add('open');
+}
+$('tg-tahun').addEventListener('change',loadSampleTarget);
+$('tg-bulan').addEventListener('change',loadSampleTarget);
+$('btn-edit-target').addEventListener('click',openEditTargetModal);
+$('modal-close-edit-target').addEventListener('click',()=>$('modal-edit-target').classList.remove('open'));
+$('modal-edit-target').addEventListener('click',e=>{if(e.target.id==='modal-edit-target')$('modal-edit-target').classList.remove('open');});
+$('btn-target-reset-default').addEventListener('click',()=>{document.querySelectorAll('.tg-input').forEach(inp=>inp.value=100);});
+$('btn-simpan-target').addEventListener('click',()=>{
+  const targets={};document.querySelectorAll('.tg-input').forEach(inp=>{targets[inp.dataset.unit]=parseInt(inp.value)||0;});
+  saveTargets(targets);$('modal-edit-target').classList.remove('open');renderSampleTarget();showToast('✅ Target sampel berhasil disimpan!');
+});
 
 async function loadLaporan(filters={}){laporanData=await api({action:'getLaporan',...filters});renderLaporan(laporanData.rows);renderProfesiProgress();}
 async function hapusLaporan(rowIndex){
@@ -1019,7 +1104,7 @@ window.addEventListener('appinstalled', function(){
 
 async function init(){
   showLoading('Menginisialisasi dashboard…');
-  try{populateUnitDropdowns();populateYearDropdown();$('in-tanggal').value=new Date().toISOString().slice(0,10);await loadMaster();await loadDashboard();await loadLaporan();}
+  try{populateUnitDropdowns();populateYearDropdown();populateTargetPeriodDropdowns();$('in-tanggal').value=new Date().toISOString().slice(0,10);await loadMaster();await loadDashboard();await loadLaporan();await loadSampleTarget();}
   catch(e){console.error(e);showToast('❌ Gagal memuat: '+e.message);}
   hideLoading();
 }
